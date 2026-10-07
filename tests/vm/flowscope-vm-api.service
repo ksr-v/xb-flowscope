@@ -1,0 +1,23 @@
+# Disposable VM fixture only; NOT a production panel service.
+[Unit]
+Description=FlowScope disposable VM loopback API fixture
+After=network.target
+
+[Service]
+Type=simple
+User=codex
+Group=codex
+WorkingDirectory=/home/codex/flowscope-vm-test/project
+Environment=XBOARD_PATH=/home/codex/flowscope-vm-test/xboard
+Environment=FLOWSCOPE_VM_RUNTIME=/home/codex/flowscope-vm-test/runtime/api
+ExecStart=/usr/bin/php -S 127.0.0.1:18080 tests/vm/api-router.php
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/codex/flowscope-vm-test/runtime/api
+
+[Install]
+WantedBy=multi-user.target

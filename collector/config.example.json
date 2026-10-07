@@ -1,0 +1,10 @@
+{
+  "panel_url": "https://panel.example.com",
+  "machine_id": 1,
+  "token": "REPLACE_WITH_THIS_PHYSICAL_MACHINE_TOKEN",
+  "interfaces": ["eth0"],
+  "state_file": "/var/lib/flowscope-collector/state.sqlite3",
+  "sample_interval": 10,
+  "report_interval": 30,
+  "request_timeout": 10
+}

@@ -1,0 +1,31 @@
+[Unit]
+Description=FlowScope durable physical NIC traffic collector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=flowscope
+Group=flowscope
+WorkingDirectory=/var/lib/flowscope-collector
+ExecStart=/usr/bin/python3 /opt/flowscope-collector/flowscope_collector.py --config /etc/flowscope-collector.json
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=20
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/flowscope-collector
+# Deliberately no PrivateNetwork: counters must belong to the host network namespace.
+
+[Install]
+WantedBy=multi-user.target

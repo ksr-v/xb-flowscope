@@ -1,0 +1,76 @@
+/* Only FlowScope-owned DOM and reversible markers are styled. Native theme variables
+   retain Xboard's Shadcn light/dark palette and radius. */
+[data-flowscope-hidden="flowscope-2.2.0"] { display: none !important; }
+[data-flowscope-owner="flowscope-2.2.0"] { box-sizing: border-box; min-width: 0; color: hsl(var(--card-foreground)); font-size: .875rem; line-height: 1.5; }
+[data-flowscope-owner="flowscope-2.2.0"] *, [data-flowscope-owner="flowscope-2.2.0"] *::before, [data-flowscope-owner="flowscope-2.2.0"] *::after { box-sizing: border-box; }
+/* Only the audited machine editor receives this reversible adapter marker.
+   Native name/notes/status/footer remain intact; the extra sibling can scroll. */
+[data-flowscope-machine-dialog="flowscope-2.2.0"] { display: block !important; overflow-y: auto !important; touch-action: pan-y !important; overscroll-behavior: contain; max-height: 90vh; max-height: 90dvh; }
+/* Vaul's 200%-height drag filler otherwise paints over scrolled form siblings.
+   Suppress it only while this exact machine dialog is adapted. */
+[data-flowscope-machine-dialog="flowscope-2.2.0"][data-vaul-drawer]::after { content: none !important; display: none !important; }
+[data-flowscope-machine-dialog="flowscope-2.2.0"] > .flowscope-editor { margin: 0 1.5rem 1.5rem; }
+.flowscope-card { width: 100%; border: 1px solid hsl(var(--border)); border-radius: var(--radius, .75rem); background: hsl(var(--card)); box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
+.flowscope-card-header { padding: 1.5rem 1.5rem 1rem; }
+.flowscope-card-title { margin: 0; color: hsl(var(--foreground)); font-size: 1rem; font-weight: 600; line-height: 1.35; letter-spacing: -.025em; }
+.flowscope-muted { margin: .375rem 0 0; color: hsl(var(--muted-foreground)); font-size: .875rem; }
+.flowscope-card-body { padding: 0 1.5rem 1.5rem; min-width: 0; }
+.flowscope-server-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.flowscope-server { min-width: 0; padding: 1rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius, .75rem); background: hsl(var(--card)); }
+.flowscope-machine-ip { margin: 0; color: hsl(var(--muted-foreground)); font-size: .75rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (min-width: 768px) { .flowscope-server-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .flowscope-server-list { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.flowscope-server-heading { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; min-width: 0; margin-bottom: .625rem; }
+.flowscope-server-name { min-width: 0; flex: 1 1 8rem; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin: 0; font-weight: 500; font-size: .875rem; }
+.flowscope-percentage { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.flowscope-progress { height: .5rem; width: 100%; overflow: hidden; border-radius: 9999px; background: hsl(var(--primary) / .15); }
+.flowscope-progress-fill { height: 100%; background: hsl(var(--primary)); border-radius: inherit; }
+.flowscope-over .flowscope-progress-fill { background: hsl(var(--destructive)); }
+.flowscope-over .flowscope-percentage { color: hsl(var(--destructive)); }
+.flowscope-over-badge { flex: 0 0 auto; border: 1px solid hsl(var(--destructive) / .35); border-radius: 9999px; padding: .0625rem .5rem; color: hsl(var(--destructive)); background: hsl(var(--destructive) / .08); font-size: .6875rem; }
+.flowscope-collector-status { border-radius: 9999px; padding: .0625rem .5rem; background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); font-size: .6875rem; white-space: nowrap; }
+.flowscope-collector-stale { color: hsl(var(--destructive)); background: hsl(var(--destructive) / .08); }
+.flowscope-sample-details, .flowscope-sample-note, .flowscope-coverage { margin: .5rem 0 0; color: hsl(var(--muted-foreground)); font-size: .6875rem; overflow-wrap: anywhere; }
+.flowscope-sample-note { border-left: 2px solid hsl(var(--border)); padding-left: .625rem; }
+.flowscope-coverage { margin-top: 1rem; }
+.flowscope-server-details { display: flex; flex-wrap: wrap; align-items: baseline; gap: .375rem 1rem; margin-top: .5rem; color: hsl(var(--muted-foreground)); font-size: .75rem; }
+.flowscope-usage { font-variant-numeric: tabular-nums; color: hsl(var(--foreground)); }
+.flowscope-cycle { margin-left: auto; overflow-wrap: anywhere; }
+.flowscope-timezone { margin: 1.25rem 0 0; color: hsl(var(--muted-foreground)); font-size: .6875rem; text-align: right; }
+.flowscope-state { display: flex; min-height: 7rem; flex-direction: column; align-items: center; justify-content: center; gap: .75rem; padding: 1rem; text-align: center; color: hsl(var(--muted-foreground)); }
+.flowscope-state p { margin: 0; overflow-wrap: anywhere; }
+.flowscope-link { color: hsl(var(--primary)); text-underline-offset: 4px; text-decoration: underline; }
+.flowscope-button { appearance: none; display: inline-flex; align-items: center; justify-content: center; min-height: 2.25rem; padding: .5rem .875rem; border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius, .5rem) - 2px); color: hsl(var(--foreground)); background: hsl(var(--background)); font: inherit; font-size: .75rem; font-weight: 500; cursor: pointer; }
+.flowscope-button:hover { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.flowscope-button:focus-visible, .flowscope-input:focus-visible, .flowscope-checkbox:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.flowscope-button:disabled { cursor: wait; opacity: .5; }
+.flowscope-editor { padding: 1rem; border: 1px solid hsl(var(--border)); border-radius: .75rem; background: hsl(var(--muted) / .15); }
+.flowscope-editor-body { margin-top: 1rem; }
+.flowscope-toggle { display: flex; align-items: center; gap: .625rem; font-size: .8125rem; cursor: pointer; }
+.flowscope-checkbox { width: 1rem; height: 1rem; margin: 0; accent-color: hsl(var(--primary)); }
+.flowscope-fields { margin-top: 1rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+.flowscope-field { min-width: 0; display: flex; flex-direction: column; gap: .375rem; }
+.flowscope-label { font-size: .75rem; font-weight: 500; }
+.flowscope-hint { color: hsl(var(--muted-foreground)); font-size: .6875rem; overflow-wrap: anywhere; }
+.flowscope-input { appearance: auto; display: block; width: 100%; min-width: 0; height: 2.25rem; padding: .375rem .625rem; border: 1px solid hsl(var(--input)); border-radius: calc(var(--radius, .5rem) - 2px); color: hsl(var(--foreground)); background: hsl(var(--background)); font: inherit; font-size: .75rem; }
+.flowscope-quota-controls { display: flex; gap: .375rem; min-width: 0; }
+.flowscope-quota-controls select { flex: 0 0 4rem; width: 4rem; }
+.flowscope-editor-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .625rem; margin-top: 1rem; }
+.flowscope-save-status { margin: .625rem 0 0; font-size: .75rem; overflow-wrap: anywhere; }
+.flowscope-save-status:empty { display: none; }
+.flowscope-error { color: hsl(var(--destructive)); }
+.flowscope-collector-install { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid hsl(var(--border)); }
+.flowscope-collector-install h4 { margin: 0; }
+.flowscope-collector-install [hidden] { display: none !important; }
+.flowscope-collector-install p { margin: .5rem 0; }
+.flowscope-install-command { display: block; width: 100%; margin: .75rem 0; font-family: monospace; font-size: .75rem; resize: vertical; overflow-wrap: anywhere; }
+.flowscope-install-command[hidden] { display: none; }
+.flowscope-machine-id { display: block; margin: .5rem 0; padding: .5rem; border-radius: .375rem; background: hsl(var(--muted)); font-size: .75rem; overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .flowscope-card-header { padding: 1rem 1rem .75rem; }
+  .flowscope-card-body { padding: 0 1rem 1rem; }
+  .flowscope-cycle { margin-left: 0; flex-basis: 100%; }
+  .flowscope-fields { grid-template-columns: minmax(0, 1fr); }
+  .flowscope-server-heading { column-gap: .375rem; }
+}
+@media (prefers-reduced-motion: no-preference) { .flowscope-progress-fill { transition: width .2s ease; } }
