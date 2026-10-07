@@ -1,4 +1,8 @@
-# FlowScope 2.2.0 implementation plan
+# FlowScope 2.3.0 implementation plan
+
+## 2.3.0 short interactive management
+
+User explicitly authorized panel-provided root Shell execution for shorter commands, then requested old-program residue cleanup, clear success/failure messages, interactive connect/uninstall menu and zero owned-install residue after confirmed uninstall. Keep tickets on stdin, menu on controlling TTY, download buffering/failure rejection, verified bootstrap and durable upgrade semantics. Purge only exact owned install paths/accounts after explicit UNINSTALL; preserve panel history, system logs and operator backups. Test actual PTY menu, cancellation, reinstall/outbox and local resource absence on the authorized disposable VM.
 
 ## 2.2.0 IPv4 / layout / installation compatibility
 

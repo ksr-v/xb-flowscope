@@ -6,9 +6,13 @@ on a production server. Uses local test CA, synthetic auth and isolated SQLite.
 
 import hashlib
 import http.client
+import fcntl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
+import pty
+import select
+import termios
 from pathlib import Path
 import re
 import shlex
@@ -23,11 +27,11 @@ import urllib.request
 
 ROOT = Path('/home/codex/flowscope-vm-test')
 PROJECT = ROOT / 'project'
-RUNTIME = ROOT / 'runtime/oneclick220-api'
-TLS = ROOT / 'runtime/oneclick220-tls'
+RUNTIME = ROOT / 'runtime/oneclick230-api'
+TLS = ROOT / 'runtime/oneclick230-tls'
 PANEL = 'https://127.0.0.1:18443'
-CA = '/opt/flowscope-oneclick220-test-ca.pem'
-DROPIN = '/etc/systemd/system/flowscope-collector.service.d/zz-oneclick220-vm-test.conf'
+CA = '/opt/flowscope-oneclick230-test-ca.pem'
+DROPIN = '/etc/systemd/system/flowscope-collector.service.d/zz-oneclick230-vm-test.conf'
 checks = []
 
 
@@ -61,7 +65,7 @@ class Proxy(BaseHTTPRequestHandler):
             return
         connection = http.client.HTTPConnection('127.0.0.1', 18080, timeout=10)
         try:
-            headers = {'Host':'127.0.0.1:18080','Content-Type':self.headers.get('Content-Type','application/json')}
+            headers = {'Host':'127.0.0.1:18443','Content-Type':self.headers.get('Content-Type','application/json')}
             if self.headers.get('X-FlowScope-IPv4'):
                 headers['X-FlowScope-IPv4'] = self.headers['X-FlowScope-IPv4']
             connection.request(self.command, self.path, body=body, headers=headers)
@@ -98,14 +102,44 @@ def issue():
     return command, credential
 
 
+def interactive(command, option='1', confirmation=None):
+    master, slave = pty.openpty()
+    child = subprocess.Popen(['sudo','-n','env','SSL_CERT_FILE='+CA,'CURL_CA_BUNDLE='+CA,'bash','-c',command],
+        stdin=slave, stdout=slave, stderr=slave, start_new_session=True,
+        preexec_fn=lambda: fcntl.ioctl(0, termios.TIOCSCTTY, 0))
+    os.close(slave)
+    output = b''
+    deadline = time.monotonic()+120
+    selected = confirmed = False
+    try:
+        while time.monotonic() < deadline:
+            if select.select([master],[],[],0.2)[0]:
+                try: data = os.read(master,65536)
+                except OSError: break
+                if not data: break
+                output += data
+                text = output.decode('utf-8',errors='replace')
+                if not selected and '请选择' in text:
+                    os.write(master,(option+'\n').encode()); selected=True
+                if confirmation is not None and not confirmed and '确认卸载' in text:
+                    os.write(master,(confirmation+'\n').encode()); confirmed=True
+            if child.poll() is not None: break
+        if child.poll() is None:
+            child.kill(); raise RuntimeError('Interactive test timeout')
+        return child.wait(), output.decode('utf-8',errors='replace')
+    finally:
+        os.close(master)
+
+
 def execute(command, success=True):
-    parts = shlex.split(command)
-    check(len(parts) == 8 and parts[0] == 'printf' and parts[1] == '%s\\n' and parts[3:7] == ['|','sudo','bash','-c'], 'Generated command has safe expected printf/stdin/bash structure')
-    # Only fixture CA changes; the generated bash payload executes unchanged.
-    result = subprocess.run(['sudo','-n','env','SSL_CERT_FILE='+CA,'CURL_CA_BUNDLE='+CA,'bash','-c',parts[-1]],
-                            input=parts[2]+'\n', capture_output=True, text=True, timeout=120)
-    check((result.returncode == 0) == success, 'Actual generated install command result matches expectation')
-    check(token not in result.stdout + result.stderr, 'Installer output omits long-term token')
+    check(command.startswith('sudo bash -c "$(') and '<<< ' in command and len(command) < 360, 'Generated compact command passes credential through stdin')
+    # Remove just the interactive sudo prefix: outer bash already runs as root.
+    command = command.replace('sudo bash -c ', 'bash -c ', 1)
+    code, output = interactive(command)
+    check((code == 0) == success, 'Actual generated interactive install result matches expectation')
+    check(token not in output, 'Installer output omits long-term token')
+    if success:
+        check('安装成功，已完成对接配置' in output, 'Successful install clearly reports completed integration configuration')
 
 
 def state():
@@ -119,6 +153,13 @@ print(json.dumps({'id':meta['collector_id'],'sequence':int(meta['sequence']),'sn
     return json.loads(subprocess.check_output(['sudo','-n','python3','-c',code], text=True))
 
 
+def failed_downloads(command):
+    command = command.replace('sudo bash -c ', 'bash -c ', 1)
+    for mock_curl in ("curl(){ printf '%s\\n' 'echo partial-was-executed'; return 22; }; ", "curl(){ return 0; }; "):
+        result = subprocess.run(['sudo','-n','bash','-c',mock_curl+command],capture_output=True,text=True,timeout=10)
+        check(result.returncode != 0 and 'partial-was-executed' not in result.stdout and '安装失败' in result.stderr, 'Failed or empty download reports failure and is never executed')
+
+
 if sys.platform != 'linux' or Path.home() != Path('/home/codex') or not ROOT.is_dir():
     raise SystemExit('Run as codex only in the explicitly authorized disposable VM')
 os.umask(0o077)
@@ -129,9 +170,9 @@ for name in ('flowscope-collector','flowscope-vm-api'):
 old = json.loads(subprocess.check_output(['sudo','-n','cat','/etc/flowscope-collector.json'], text=True))
 check(old.get('panel_url') in ('http://127.0.0.1:18080', PANEL) and old.get('machine_id') == 41 and old.get('token') == token,
       'Previous installation is the known synthetic test, not production')
-backups = [('/etc/flowscope-collector.json','/etc/flowscope-collector.json.pre-v2.2.0-vm-test-backup'),
-           ('/var/lib/flowscope-collector','/var/lib/flowscope-collector.pre-v2.2.0-vm-test-backup'),
-           ('/opt/flowscope-collector','/opt/flowscope-collector.pre-v2.2.0-vm-test-backup')]
+backups = [('/etc/flowscope-collector.json','/etc/flowscope-collector.json.pre-v2.3.0-vm-test-backup'),
+           ('/var/lib/flowscope-collector','/var/lib/flowscope-collector.pre-v2.3.0-vm-test-backup'),
+           ('/opt/flowscope-collector','/opt/flowscope-collector.pre-v2.3.0-vm-test-backup')]
 for source, target in backups:
     check(subprocess.run(['sudo','-n','test','-e',source]).returncode == 0, 'Explicit backup source exists')
     check(subprocess.run(['sudo','-n','test','-e',target]).returncode != 0, 'Backup destination is unused')
@@ -161,6 +202,7 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 try:
     time.sleep(1)
     command, ticket = issue()
+    failed_downloads(command)
     print('Testing actual HTTPS one-command first install...', flush=True)
     execute(command)
     time.sleep(1)
@@ -201,16 +243,25 @@ try:
     address_status, address_data = request('/api/v2/flowscope/machine-addresses')
     check(address_status == 200, 'Actual Admin IPv4 endpoint available')
     ip_rows = address_data['data']['machines']
-    result = {'result':'PASS','version':'2.2.0','checks':checks,'total_checks':len(checks),
+    code, output = interactive(command.replace('sudo bash -c ', 'bash -c ', 1), '2', 'NO')
+    check(code == 0 and '已取消卸载' in output and bool(state()), 'Uninstall cancellation preserves collector state')
+    code, output = interactive(command.replace('sudo bash -c ', 'bash -c ', 1), '2', 'UNINSTALL')
+    check(code == 0 and '卸载完成' in output, 'Confirmed interactive uninstall succeeds')
+    for path in ('/opt/flowscope-collector','/var/lib/flowscope-collector','/etc/flowscope-collector.json','/etc/systemd/system/flowscope-collector.service','/etc/systemd/system/flowscope-collector.service.d'):
+        check(subprocess.run(['sudo','-n','test','-e',path]).returncode != 0, 'Uninstall removes exact owned path: '+path)
+    check(subprocess.run(['getent','passwd','flowscope'],stdout=subprocess.DEVNULL).returncode != 0, 'Uninstall removes dedicated service account')
+    check(subprocess.run(['getent','group','flowscope'],stdout=subprocess.DEVNULL).returncode != 0, 'Uninstall removes dedicated group')
+    check(request('/__test__/audit')[1]['totals'] == audit['totals'], 'Uninstall preserves panel history')
+    result = {'result':'PASS','version':'2.3.0','checks':checks,'total_checks':len(checks),
               'collector_id':final['id'],'sequence':final['sequence'],'pending':len(final['outbox']),
               'totals':audit['totals'],'backups':backups,'ipv4_reported':bool(ip_rows),
               'scope':'Authorized native Linux VM; trusted local fixture CA; synthetic Admin; native routes with file SQLite, not production deployment'}
     serialized = json.dumps(result, indent=2)
     check(token not in serialized, 'Evidence omits machine credentials')
-    (ROOT/'oneclick220-results.json').write_text(serialized)
+    (ROOT/'oneclick230-results.json').write_text(serialized)
     print('PASS oneclick VM; checks='+str(len(checks))+'; pending=0; no credentials in evidence', flush=True)
 finally:
-    sudo('systemctl','disable','--now','flowscope-collector', stdout=subprocess.DEVNULL)
+    subprocess.run(['sudo','-n','systemctl','disable','--now','flowscope-collector'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     api.terminate()
     api.wait(timeout=10)
     server.shutdown()

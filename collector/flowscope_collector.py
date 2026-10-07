@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FlowScope 2.2.0: durable, explicit-interface Linux NIC collector (stdlib only)."""
+"""FlowScope 2.3.0: durable, explicit-interface Linux NIC collector (stdlib only)."""
 
 import argparse
 import ipaddress
@@ -29,7 +29,7 @@ try:
 except ImportError:  # Importable on Windows for mocked unit tests; never a Linux lock substitute.
     fcntl = None
 
-VERSION = "2.2.0"
+VERSION = "2.3.0"
 MAX_INTEGER = 9223372036854775807
 MAX_COUNTER = 18446744073709551615
 MIN_TIMESTAMP = 1577836800

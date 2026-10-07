@@ -142,7 +142,7 @@ class BootstrapTests(unittest.TestCase):
         with mock.patch.object(b.urllib.request,'build_opener',return_value=opener), self.assertRaises(b.InstallError) as error:
             b.redeem('https://panel.example.com','synthetic-private')
         request = opener.open.call_args.args[0]
-        self.assertEqual(request.get_header('User-agent'), 'FlowScope-Installer/2.2.0')
+        self.assertEqual(request.get_header('User-agent'), 'FlowScope-Installer/2.3.0')
         self.assertIn('HTTP 403',str(error.exception))
         self.assertNotIn('synthetic-private',str(error.exception))
         self.assertNotIn('private.example',str(error.exception))

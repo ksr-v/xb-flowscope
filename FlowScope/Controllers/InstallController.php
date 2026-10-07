@@ -37,6 +37,22 @@ final class InstallController extends Controller
         catch (QueryException) { return response()->json(['message' => 'Installation storage temporarily unavailable.'], 503, self::HEADERS); }
     }
 
+    public function shell(Request $request, string $id, InstallService $installer)
+    {
+        if (!preg_match('/^[1-9][0-9]{0,18}$/D', $id)) { abort(404); }
+        $raw = $request->query('interfaces', '');
+        if (!is_string($raw) || strlen($raw) > 2079) { abort(422); }
+        $interfaces = $raw === '' ? [] : explode(',', $raw);
+        if (count($interfaces) > 32 || count(array_unique($interfaces)) !== count($interfaces)) { abort(422); }
+        foreach ($interfaces as $name) {
+            if ($name === 'lo' || !preg_match('/^[A-Za-z0-9_.:@-]{1,64}$/D', $name)) { abort(422); }
+        }
+        // TLS may terminate at a trusted reverse proxy; never emit an HTTP download.
+        $url = 'https://'.$request->getHttpHost();
+        if (!filter_var($url, FILTER_VALIDATE_URL) || preg_match('/[\x00-\x20\x7f\\\\]/', $url)) { abort(422); }
+        return response($installer->shell($id, $url, $interfaces), 200, self::HEADERS + ['Content-Type'=>'text/x-shellscript; charset=UTF-8']);
+    }
+
     public function redeem(Request $request, InstallService $installer)
     {
         if (strlen($request->getContent()) > 1024) { abort(413); }

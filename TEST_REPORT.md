@@ -1,4 +1,15 @@
-# FlowScope 2.2.0 test report
+# FlowScope 2.3.0 test report
+
+Date: 2026-10-08, Asia/Shanghai. New scope: compact buffered-download command, interactive management, known old-program residue cleanup, explicit success/failure and confirmed uninstall.
+
+- PASS Windows full regression: backend 210; integration 123; installer 76 assertions (including compact command, stdin credential, no-secret rendered manager, NIC injection rejection, failure text and disable gating); IPv4 24; upgrade suites 14 each; collector 59 tests (3 POSIX skips), bootstrap 8 (1 POSIX skip), protocol 2/2. No new database migration.
+- PASS real audited Admin browser fixture: 132 checks (93 assertions + 39 states), runtimeErrors empty. Menu guidance updated; prior UI/mobile/locale/auth cleanup preserved.
+- PASS final native uploaded ZIP lifecycle: 186 checks, including actual rendered interactive endpoint and source-exact extracted manager template. Release consistency 2/2. A test initially attempted to reuse its already-closed ZIP handle; corrected to verify the actual extracted file, then reran successfully.
+- PASS authorized Linux VM: native regression, collector 59/59, bootstrap 8/8, protocol 2/2; actual HTTPS compact command under a PTY with menu choice 1; failed/empty download refusal and failure notice; reinstall preserves exact config, identity and pending payloads; real IP.SB IPv4 reported; recovered queue empty, SQLite integrity OK, API RX 4810/TX 1671 exactly match NIC deltas. Cancelled uninstall retained state; confirmed UNINSTALL removed program/config/SQLite/service/drop-ins and dedicated user/group, panel totals unchanged. Evidence `tests/.runtime/oneclick230-results.json`: 49 recorded assertions plus credential-omission assertion. Existing test backups retained at explicit `.pre-v2.3.0-vm-test-backup` paths; isolated test CA remains outside installed resources. Test services stopped/uninstalled, fixture API stopped.
+- The earlier v2.2.1 short-command experiment failed because the test proxy emitted its internal port in generated URLs; corrected fixture host forwarding before the successful interactive run. No production result is claimed. Final minor limit/message/UI edits covered locally; production MySQL/Octane/Nginx and hard power loss remain NOT RUN.
+- Uninstall removes owned local installation resources, not every historical trace: system journal, shell history, test CA and operator-created backups are deliberately not erased. Local pending data deletion is irreversible without a backup and requires explicit confirmation. Success message states configuration completed; first sample still takes 30-60s.
+
+## Historical v2.2.0 test report
 
 Date: 2026-10-07, Asia/Shanghai. New scope: IP.SB public IPv4, server-list display, compact traffic card grid and installation compatibility.
 

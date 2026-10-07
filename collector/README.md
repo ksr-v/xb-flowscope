@@ -1,6 +1,12 @@
-# FlowScope Linux Collector 2.2.0
+# FlowScope Linux Collector 2.3.0
 
-## v2.2.0 出口 IPv4 与升级
+## 交互式安装 / 卸载
+
+面板生成的短命令在 Bash SSH 终端执行，从 `/dev/tty` 选择 1 对接/升级或 2 卸载；凭证单独从标准输入传入。安装清理已知旧程序缓存与 `.new` 残留并保留配置/SQLite/待上报队列。成功提示“安装成功，已完成对接配置”，首次流量仍需等待上报。
+
+卸载必须输入 `UNINSTALL` 确认；删除本机程序、服务/drop-in/自启链接、配置、数据库与未上报流量、专用账号/组，不删除面板历史。异常路径、挂载点、非专用账号或其他进程会拒绝。不会擦除系统日志、Shell 历史或用户备份。卸载不做自动数据备份，确认前自行保存所需数据。
+
+## v2.3.0 出口 IPv4 与升级
 
 生产采集器在上报线程通过 `https://api-ipv4.ip.sb/ip` 查询出口 IPv4，自定义 FlowScope User-Agent、验证 TLS、拒绝跳转、绕过环境代理，不传输 Token。成功缓存一小时，失败五分钟后重试，缓存两小时后不再发送。IPv4 通过独立请求头发送给面板，不修改积压 payload 或其摘要；升级不需要清空 SQLite。查询失败不阻断流量计量。
 
@@ -15,18 +21,18 @@
 - 在真实 Linux 宿主机上以本包提供的 systemd 服务运行；不要在 Docker/Podman、独立 network namespace 中运行。脚本检查容器文件标记、环境及 cgroup；可读取 PID 1 网络 namespace 时严格比较 device+inode，不同则拒绝。
 - 非 root 用户可能因 procfs/ptrace 权限无法读取 `/proc/1/ns/net`：仅此 `PermissionError` 情况会输出受限探测警告并依赖上述标记检查和无 `PrivateNetwork` 的宿主机 unit，不要求 root/CAP_SYS_PTRACE。其它 procfs 错误仍拒绝。**这是保守防误部署检查，不是宿主机 namespace 的完整证明**；隐藏容器等仍须部署方核实。
 - 需要 `/usr/bin/python3` 3.9+、SQLite 标准库、systemd、`useradd/groupadd/getent/install`。运行账户为独立、无登录权限的 `flowscope`，无需 root 或网络管理 capability。
-- Xboard 上安装并启用 FlowScope **2.2.0**；使用“物理服务器管理”中对应机器的 ID 和机器 token。不要使用节点 ID、用户 token 或管理员登录 token。
+- Xboard 上安装并启用 FlowScope **2.3.0**；使用“物理服务器管理”中对应机器的 ID 和机器 token。不要使用节点 ID、用户 token 或管理员登录 token。
 - 必须设置 `interfaces` allowlist，1..32 个不同的 ASCII 接口名。例如 `['ens3']`（配置 JSON 中使用双引号）。先在主机运行 `ip -br link`、`ip route` 确认实际接口。
 - bond 主接口与其 slave、bridge 与其成员、veth 两端可能重复计算同一流量，**不要同时选取重叠接口**。多张不重叠的物理网卡可以明确列出。脚本不根据名称判断“物理”或替你选择计费接口。
 - 一台物理机器只部署一个采集器。相同 state 目录由 Linux `flock` 防止双进程；后端也只允许一个 collector_id 绑定机器。不要用不同 state 目录运行第二份。
 
 ## 本地安装
 
-v2.2.0 推荐从 **服务器管理 → 编辑服务器 → FlowScope** 生成一键安装命令。命令通过 HTTPS 下载面板的 `bootstrap.py`，使用短期单次凭证兑换配置和固定文件包，自动安装/启动/设为开机自启。长期机器 Token 不在 shell 命令或 URL 中。一键安装需要信任面板（以 root 执行其代码），并已具备 curl、Python 3.9+、systemd、iproute2；不自动安装系统依赖。
+v2.3.0 推荐从 **服务器管理 → 编辑服务器 → FlowScope** 生成一键安装命令。命令通过 HTTPS 下载面板的 `bootstrap.py`，使用短期单次凭证兑换配置和固定文件包，自动安装/启动/设为开机自启。长期机器 Token 不在 shell 命令或 URL 中。一键安装需要信任面板（以 root 执行其代码），并已具备 curl、Python 3.9+、systemd、iproute2；不自动安装系统依赖。
 
 默认合并 IPv4/IPv6 默认路由，仅唯一且带设备引用的出口自动选择；多出口或虚拟/聚合接口请在界面指定。已有安装默认保留原网卡和私有配置，跨面板/机器或配置冲突拒绝覆盖。凭证兑换一次即失效，后续失败需生成新命令。以下手动方式继续支持。
 
-使用经过信任的本地发布包，不使用 `curl | sh`，安装脚本不会下载任何东西。独立发布包顶层目录为 `flowscope-collector-2.2.0/`；插件 ZIP 内也附带 `Flowscope/collector/`。以下命令在包含 `install.sh` 的目录执行。
+使用经过信任的本地发布包，不使用 `curl | sh`，安装脚本不会下载任何东西。独立发布包顶层目录为 `flowscope-collector-2.3.0/`；插件 ZIP 内也附带 `Flowscope/collector/`。以下命令在包含 `install.sh` 的目录执行。
 
 1. 准备配置文件，权限设为 `0600`，用编辑器填写 URL、机器身份和真实网卡名：
 
@@ -142,4 +148,4 @@ python tests/collector_test.py
 
 测试使用临时 workspace、模拟 Linux sysfs/proc、真实 SQLite 事务及 loopback HTTP 重定向 fixture，覆盖持久恢复、ACK 丢失/提交失败、幂等补报、逐NIC reset、接口变更、时钟回退、HTTP校验及线程异常退出。
 
-验证范围以发布包中的 `TEST_REPORT.md` 为准。v2.0.0 已有独立的 Ubuntu NIC/systemd/重启实测记录，不能冒充 v2.2.0 新增一键安装链路已实测。`tests/bootstrap_test.py` 覆盖 HTTPS/重定向、默认出口/IPv6/多网卡、配置冲突保护和安装/重复安装流程；跨平台模拟不能替代 Linux 实机验收。
+验证范围以发布包中的 `TEST_REPORT.md` 为准。v2.0.0 已有独立的 Ubuntu NIC/systemd/重启实测记录，不能冒充 v2.3.0 新增一键安装链路已实测。`tests/bootstrap_test.py` 覆盖 HTTPS/重定向、默认出口/IPv6/多网卡、配置冲突保护和安装/重复安装流程；跨平台模拟不能替代 Linux 实机验收。

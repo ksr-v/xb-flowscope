@@ -57,6 +57,7 @@ try {
     if (!(($path === '/api/v2/flowscope/collect' && $method === 'POST') || $installAdmin ||
         ($path === '/api/v2/flowscope/install/redeem' && $method === 'POST') ||
         ($path === '/api/v2/flowscope/installer' && $method === 'GET') ||
+        ($path === '/api/v2/flowscope/install/41' && $method === 'GET') ||
         (in_array($path, ['/api/v2/flowscope/dashboard', '/api/v2/flowscope/machine-addresses'], true) && $method === 'GET'))) {
         fixtureJson(['message' => 'Not Found. Fixture writes are CLI-only.'], 404);
     }

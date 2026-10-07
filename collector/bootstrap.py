@@ -94,7 +94,7 @@ def redeem(panel, ticket):
     request = urllib.request.Request(panel + '/api/v2/flowscope/install/redeem',
         data=json.dumps({'ticket': ticket}).encode(), method='POST',
         headers={'Content-Type': 'application/json', 'Accept': 'application/json',
-                 'User-Agent': 'FlowScope-Installer/2.2.0'})
+                 'User-Agent': 'FlowScope-Installer/2.3.0'})
     opener = urllib.request.build_opener(NoRedirect(), urllib.request.HTTPSHandler(context=ssl.create_default_context()))
     try:
         with opener.open(request, timeout=30) as response:
@@ -163,6 +163,8 @@ def run(args):
             'sample_interval': 10, 'report_interval': 30, 'request_timeout': 10}
         collector.Config.from_dict(config)
         command = ['bash', str(root / 'install.sh')]
+        if Path('/opt/flowscope-collector/flowscope_collector.py').is_file():
+            print('检测到已有采集器：正在清理旧程序缓存及临时残留，配置、历史和待上报队列将保留。', flush=True)
         if not old:
             prepared = root / 'prepared.json'
             prepared.write_text(json.dumps(config))
@@ -171,7 +173,7 @@ def run(args):
     subprocess.run(['systemctl', 'enable', 'flowscope-collector'], check=True, stdout=subprocess.DEVNULL)
     subprocess.run(['systemctl', 'restart', 'flowscope-collector'], check=True)
     subprocess.run(['systemctl', 'is-active', '--quiet', 'flowscope-collector'], check=True)
-    print('FlowScope installed and started; NIC=' + ','.join(names) + '; previous config/state preserved. Check the panel in 30-60 seconds.')
+    print('安装成功，已完成对接配置；machine_id=' + str(args.machine_id) + '，网卡=' + ','.join(names) + '。服务已启动并设置开机自启，原有配置和数据已保留；请在 30–60 秒后检查面板首次上报。')
 
 
 if __name__ == '__main__':
@@ -188,5 +190,5 @@ if __name__ == '__main__':
             args.ticket = sys.stdin.readline(66).strip()
         run(args)
     except Exception as error:
-        print(str(error) if isinstance(error, InstallError) else 'Installation failed; state was preserved. Check local service status; no credentials displayed.', file=sys.stderr)
+        print('安装失败：' + (str(error) if isinstance(error, InstallError) else 'Installation failed; state was preserved. Check local service status; no credentials displayed.'), file=sys.stderr)
         sys.exit(1)

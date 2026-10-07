@@ -1,4 +1,10 @@
-# FlowScope 2.2.0 development
+# FlowScope 2.3.0 development
+
+## Compact interactive manager
+
+Enabled-gated public GET `/install/{id}` renders fixed `collector/manage.sh` with POSIX-quoted HTTPS panel origin, exact machine ID and validated NIC names. It contains no credential or machine token. Short Bash command fully buffers curl output (30s / 64KiB limit), executes only complete nonempty success, and passes the single-use ticket via a here-string. Operators explicitly authorized panel-provided root Shell execution. Menu input uses `/dev/tty`, separate from credential stdin. Option 1 delegates to the existing verified Python bootstrap; option 2 requires `UNINSTALL`, validates exact non-symlink/non-mount owned paths and dedicated account/group, stops/disables service, purges fixed local install resources and checks absence. It does not delete panel history, operator backups, shared journals or shell history. Uninstall is destructive to local SQLite/outbox and cannot be undone without an operator backup. Ordinary upgrade only removes known compiled program caches and `.new` temporary files; state retained.
+
+No new migration or wire protocol. Legacy inline commands remain supported by `/installer`; new commands require Bash and a controlling terminal. Installation success means integration configuration and service activation completed, not that the panel has already received its first sample. Explicit errors never include credentials.
 
 ## IPv4 and compact dashboard
 

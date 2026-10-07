@@ -22,7 +22,7 @@ const artifacts = join(root, 'tests/.runtime/ui');
 mkdirSync(artifacts, {recursive: true});
 const profile = mkdtempSync(join(artifacts, 'browser-profile-'));
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-const config = {version: '2.2.0', enabled: true, apiBase: '/api/v2/flowscope', statusUrl: '/api/v2/flowscope/status', timezone: 'Asia/Shanghai', owner: 'flowscope', compatibility: {supported: true, build: 'index-CEIYH7i8.js'}};
+const config = {version: '2.3.0', enabled: true, apiBase: '/api/v2/flowscope', statusUrl: '/api/v2/flowscope/status', timezone: 'Asia/Shanghai', owner: 'flowscope', compatibility: {supported: true, build: 'index-CEIYH7i8.js'}};
 let statusEnabled = true, statusCode = 200, dashboardMode = 'normal', dashboardDelay = 0, installLifetime = 600;
 let stored = {enabled: true, display_name: 'Saved physical server', quota_bytes: '1099511627777', traffic_mode: 'outbound', cycle_start_day: 31};
 let collector = {id: 'isolated-collector', status: 'active', last_report_at: 1791345600, first_sample_at: 1791342000, interfaces: ['eth0']};
@@ -63,7 +63,7 @@ const injected = spawnSync(process.env.FLOWSCOPE_PHP || 'php', [], {input: phpFi
 assert.equal(injected.status, 0, 'Actual PHP injector executes; set FLOWSCOPE_PHP or add PHP to PATH. ' + (injected.stderr || ''));
 const html = injected.stdout;
 assert.equal((html.match(/data-flowscope-loader/g) || []).length, 1, 'Actual PHP output contains one owned loader');
-assert(html.includes('src="/api/v2/flowscope/assets/script?v=2.2.0"') && html.includes('href="/api/v2/flowscope/assets/style?v=2.2.0"'), 'Actual PHP injector emits extensionless versioned JS/CSS URLs');
+assert(html.includes('src="/api/v2/flowscope/assets/script?v=2.3.0"') && html.includes('href="/api/v2/flowscope/assets/style?v=2.3.0"'), 'Actual PHP injector emits extensionless versioned JS/CSS URLs');
 const http = createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   if (url.pathname.startsWith('/api/v2/flowscope/assets/')) {
@@ -136,7 +136,7 @@ try {
     assert.equal(blocked.status, 404, 'Static-suffix proxy reproduces the production 404: ' + legacy);
   }
   for (const [asset, mime] of [['script', 'application/javascript'], ['style', 'text/css']]) {
-    const response = await fetch(origin + '/api/v2/flowscope/assets/' + asset + '?v=2.2.0');
+    const response = await fetch(origin + '/api/v2/flowscope/assets/' + asset + '?v=2.3.0');
     assert.equal(response.status, 200, 'Extensionless asset survives the static-suffix proxy: ' + asset);
     assert(response.headers.get('content-type').startsWith(mime), 'Extensionless asset retains the browser MIME type: ' + asset);
   }
@@ -180,8 +180,8 @@ try {
   await cdp('Page.navigate', {url: origin + '/'});
   await wait('document.querySelector("#flowscope-period-traffic")?.textContent.includes("Loading traffic")', 'Loading state renders');
   await wait('document.querySelectorAll(".flowscope-server").length===5', 'Actual native dashboard mounts');
-  assert.equal(await evaluate('window.__FLOWSCOPE__.version + ":" + window.__FLOWSCOPE_RUNTIME__.version'), '2.2.0:2.2.0', 'Real PHP inline loader and browser runtime agree on version');
-  assert.equal(await evaluate('document.querySelector("[data-flowscope-owner]").getAttribute("data-flowscope-owner")'), 'flowscope-2.2.0', 'UI ownership marker uses the version');
+  assert.equal(await evaluate('window.__FLOWSCOPE__.version + ":" + window.__FLOWSCOPE_RUNTIME__.version'), '2.3.0:2.3.0', 'Real PHP inline loader and browser runtime agree on version');
+  assert.equal(await evaluate('document.querySelector("[data-flowscope-owner]").getAttribute("data-flowscope-owner")'), 'flowscope-2.3.0', 'UI ownership marker uses the version');
   assert.equal(await evaluate('document.querySelector(".flowscope-over .flowscope-percentage").textContent'), '127.4%');
   assert.equal(await evaluate('document.querySelector(".flowscope-over .flowscope-progress-fill").style.width'), '100%');
   assert.equal(await evaluate('document.querySelectorAll(".flowscope-over-badge").length'), 2, 'Exact backend over-quota flag survives percentage rounding');
@@ -345,7 +345,7 @@ try {
   await screenshot('native-editor-mobile', false);
   assert.equal(await evaluate('document.querySelector(".flowscope-editor").scrollWidth <= document.querySelector(".flowscope-editor").clientWidth'), true, 'Editor fits mobile');
   // Duplicate script execution must retain one adapter, observer and editor section.
-  await evaluate(`fetch('/api/v2/flowscope/assets/script?v=2.2.0').then(r=>r.text()).then(code=>(0,eval)(code))`);
+  await evaluate(`fetch('/api/v2/flowscope/assets/script?v=2.3.0').then(r=>r.text()).then(code=>(0,eval)(code))`);
   assert.equal(await evaluate('document.querySelectorAll(".flowscope-editor").length'), 1);
   // Ambiguous form providers are rejected without guessing a server from its name.
   await evaluate(`(()=>{const p=document.querySelector('[role="dialog"][data-state="open"] form input[name=name]');let f=p[Object.keys(p).find(k=>k.startsWith('__reactFiber$'))];while(f&&!f.memoizedProps?.getValues)f=f.return;window.__testOriginalProps=f.return.memoizedProps;window.__testFiber=f.return;f.return.memoizedProps={...f.return.memoizedProps,getValues:()=>({id:42,name:'Duplicate physical server',notes:'',is_active:true}),control:{}};})()`);
@@ -382,7 +382,7 @@ try {
   await evaluate('window.__FLOWSCOPE_RUNTIME__.refresh()');
   await wait('!window.__FLOWSCOPE_RUNTIME__', 'Disabled plugin destroys adapter');
   mobileLayout.disabledNative = await layoutMetrics();
-  assert.equal(await evaluate('document.querySelectorAll(\'[data-flowscope-owner],[data-flowscope-hidden],[data-flowscope-asset],[data-flowscope-machine-dialog="flowscope-2.2.0"]\').length'), 0);
+  assert.equal(await evaluate('document.querySelectorAll(\'[data-flowscope-owner],[data-flowscope-hidden],[data-flowscope-asset],[data-flowscope-machine-dialog="flowscope-2.3.0"]\').length'), 0);
   assert.equal(await evaluate('document.querySelector("[data-foreign]").getAttribute("data-flowscope-machine-dialog")'), 'foreign-owner', 'Foreign marker value is not removed by dialog cleanup');
   assert.equal(await evaluate('document.querySelector("#foreign-style").textContent.includes("smart-expiry:keep") && !!document.querySelector("[data-foreign]")'), true, 'Foreign style and markers preserved');
   statusEnabled = true; dashboardMode = 'normal';
@@ -400,16 +400,16 @@ try {
     await cdp('Page.navigate', {url: origin + '/?lang=' + lang});
     await wait('document.querySelectorAll(".flowscope-server").length===5 && document.querySelectorAll("[data-flowscope-hidden]").length===12', lang + ' exact locale hides only native target components');
   }
-  await evaluate(`window.__FLOWSCOPE_RUNTIME__.destroy();window.__FLOWSCOPE__.compatibility.supported=false;fetch('/api/v2/flowscope/assets/script?v=2.2.0').then(r=>r.text()).then(code=>(0,eval)(code))`);
+  await evaluate(`window.__FLOWSCOPE_RUNTIME__.destroy();window.__FLOWSCOPE__.compatibility.supported=false;fetch('/api/v2/flowscope/assets/script?v=2.3.0').then(r=>r.text()).then(code=>(0,eval)(code))`);
   assert.equal(await evaluate('!!window.__FLOWSCOPE_RUNTIME__ || !!document.querySelector("[data-flowscope-owner]")'), false, 'Unsupported builds fail closed');
   console.log('PASS actual native Admin through static-suffix proxy and actual PHP loader: physical machine identity and same-name edits; node editor excluded; unsaved machine prompt; independent exact save and Enter isolation; NIC RX/TX, waiting/stale/coverage; confirmed collector reset preserving history; native/plugin mobile scroll reachability; loading/error/retry/empty; over-quota; light/dark; en/zh/ru locale; duplicate load; disable/401 restore; foreign ownership; reload re-enable; unsupported build.');
-  writeFileSync(join(artifacts, 'browser-results.json'), JSON.stringify({result: 'PASS', version: '2.2.0', checks: {...checks, total: checks.assertions + checks.states}, loaderPipeline: 'Actual AdminIntegration::inject PHP output with fixture application dependencies', proxy: {staticSuffixRule: true, rejectedAssetPaths}, mobileLayout, mobileControls, confirmations, nativeBuild: 'index-CEIYH7i8.js', requests: apiRequests, runtimeErrors: errors}, null, 2));
+  writeFileSync(join(artifacts, 'browser-results.json'), JSON.stringify({result: 'PASS', version: '2.3.0', checks: {...checks, total: checks.assertions + checks.states}, loaderPipeline: 'Actual AdminIntegration::inject PHP output with fixture application dependencies', proxy: {staticSuffixRule: true, rejectedAssetPaths}, mobileLayout, mobileControls, confirmations, nativeBuild: 'index-CEIYH7i8.js', requests: apiRequests, runtimeErrors: errors}, null, 2));
   if (errors.length) throw new Error('Native browser runtime errors: ' + JSON.stringify(errors));
 } catch (error) {
   if (cdp) {
     try { const shot = await cdp('Page.captureScreenshot', {format: 'png'}); writeFileSync(join(artifacts, 'failure.png'), Buffer.from(shot.data, 'base64')); } catch {}
   }
-  writeFileSync(join(artifacts, 'browser-results.json'), JSON.stringify({result: 'FAIL', version: '2.2.0', checks: {...checks, total: checks.assertions + checks.states}, proxy: {staticSuffixRule: true, rejectedAssetPaths}, mobileLayout, mobileControls, message: error.message, requests: apiRequests, runtimeErrors: errors}, null, 2));
+  writeFileSync(join(artifacts, 'browser-results.json'), JSON.stringify({result: 'FAIL', version: '2.3.0', checks: {...checks, total: checks.assertions + checks.states}, proxy: {staticSuffixRule: true, rejectedAssetPaths}, mobileLayout, mobileControls, message: error.message, requests: apiRequests, runtimeErrors: errors}, null, 2));
   throw error;
 } finally {
   ws?.close(); browser.kill(); await new Promise(resolve => proxy.close(resolve)); await new Promise(resolve => http.close(resolve));

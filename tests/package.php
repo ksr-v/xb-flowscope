@@ -195,6 +195,9 @@ packageVerify($issue->getStatusCode() === 200, 'archived one-command installer i
 $installCommand = json_decode($issue->getContent(), true)['data']['command'];
 preg_match('/[a-f0-9]{64}/', $installCommand, $credential);
 packageVerify(isset($credential[0]), 'archived command contains short installation credential');
+$managerShell=flowScopeRequest('GET','/api/v2/flowscope/install/71',[],null);
+packageVerify($managerShell->getStatusCode()===200 && str_contains($managerShell->getContent(),'UNINSTALL'),'archived interactive install/uninstall entry available');
+packageVerify(is_file($fixture.'/plugins/Flowscope/collector/manage.sh') && hash_file('sha256',$fixture.'/plugins/Flowscope/collector/manage.sh')===hash_file('sha256',$root.'/collector/manage.sh'),'archive includes exact fixed manager template');
 $exchange = flowScopeRequest('POST', '/api/v2/flowscope/install/redeem', ['ticket'=>$credential[0]], null);
 packageVerify($exchange->getStatusCode() === 200, 'archived machine credential exchange works');
 packageVerify(flowScopeRequest('POST', '/api/v2/flowscope/install/redeem', ['ticket'=>$credential[0]], null)->getStatusCode() === 403, 'archived credential single use');

@@ -84,7 +84,7 @@ class ConfigTests(Fixture):
         self.assertEqual(self.config.sample_interval, 10)
         self.assertEqual(self.config.report_interval, 30)
         self.assertEqual(self.config.request_timeout, 10)
-        self.assertEqual(c.VERSION, "2.2.0")
+        self.assertEqual(c.VERSION, "2.3.0")
         self.assertEqual(self.config.endpoint, "https://panel.example.test/api/v2/flowscope/collect")
 
     def test_explicit_interfaces_required(self):
@@ -147,7 +147,7 @@ class ConfigTests(Fixture):
     def test_cli_version_works_without_linux_or_config(self):
         result = subprocess.run([sys.executable, str(MODULE), "--version"], capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0)
-        self.assertIn("2.2.0", result.stdout)
+        self.assertIn("2.3.0", result.stdout)
         self.assertNotIn(SECRET, result.stdout + result.stderr)
 
 
@@ -792,7 +792,10 @@ class LockAndCLITests(Fixture):
     def test_source_installer_is_local_only_and_unit_uses_nonroot_host_network(self):
         installer = (ROOT / "collector/install.sh").read_text(encoding="utf-8")
         unit = (ROOT / "collector/flowscope-collector.service").read_text(encoding="utf-8")
-        self.assertNotRegex(installer, r"\b(curl|wget|rm)\s")
+        self.assertNotRegex(installer, r"\b(curl|wget)\s")
+        self.assertNotIn('rm -rf', installer)
+        self.assertIn('rm -f -- "$install_dir/flowscope_collector.py.new"', installer)
+        self.assertIn('rm -f -- "$cached"', installer)
         self.assertIn("User=flowscope", unit)
         self.assertIn("ReadWritePaths=/var/lib/flowscope-collector", unit)
         self.assertNotIn("PrivateNetwork=true", unit)

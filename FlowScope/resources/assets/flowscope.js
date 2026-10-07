@@ -1,4 +1,4 @@
-/* FlowScope 2.2.0. Read-only adapter for the audited Xboard Admin build.
+/* FlowScope 2.3.0. Read-only adapter for the audited Xboard Admin build.
  * No native React state, route, request, or shared asset is changed. */
 (() => {
   'use strict';
@@ -7,7 +7,7 @@
   if (!config || config.enabled !== true || config.compatibility?.supported !== true ||
       config.compatibility.build !== 'index-CEIYH7i8.js') return;
 
-  const OWNER = 'flowscope-2.2.0';
+  const OWNER = 'flowscope-2.3.0';
   const OWN = '[data-flowscope-owner="' + OWNER + '"]';
   const HIDDEN = 'data-flowscope-hidden';
   const apiBase = String(config.apiBase || '/api/v2/flowscope').replace(/\/$/, '');
@@ -44,6 +44,8 @@
   Object.assign(words['zh-CN'], {installHint: '点击生成一键命令，在对应 Linux 宿主机执行。命令以 root 权限运行你面板提供的安装器；无需手工填写机器 Token。', installGenerate: '生成一键安装命令', installGenerating: '正在生成…', installInterfaces: '指定网卡（可选）', installInterfaceHint: '留空自动识别唯一默认出口；多出口请填写，如 ens33,eth1。已有安装默认保留原网卡。', installSecurity: '命令 10 分钟内单次有效，新命令使旧命令失效。使用前请保密；安装会启动服务并设为开机自启，不删除采集状态。', installCopy: '复制命令', installCopied: '已复制；请在对应服务器执行。', installSelect: '已选中命令，请手动复制。', installExpired: '安装命令已过期，请重新生成。', installError: '生成失败：请确认面板使用 HTTPS、服务器已启用，再重试。', installInvalid: '网卡名无效或重复，请用逗号分隔。', waitingHistory: '等待新的采集上报；以下保留历史流量，不代表完整周期用量。'});
   Object.assign(words['en-US'], {installHint: 'Generate a command and run it on this Linux host. It executes the installer from your panel as root; no manual machine Token entry.', installGenerate: 'Generate install command', installGenerating: 'Generating…', installInterfaces: 'NIC override (optional)', installInterfaceHint: 'Blank: detect a unique default-route NIC. Multiple exits: specify ens33,eth1. Existing installs retain their NICs.', installSecurity: 'One use within 10 minutes; a new command revokes the previous one. Keep it private. Installs and starts an enabled service without deleting collector state.', installCopy: 'Copy command', installCopied: 'Copied. Run on the matching server.', installSelect: 'Command selected; copy manually.', installExpired: 'Command expired; generate another.', installError: 'Could not generate. Use panel HTTPS and enable this machine, then retry.', installInvalid: 'Invalid or duplicate NIC names; separate with commas.'});
 
+  Object.assign(words['zh-CN'], {installHint: '生成简短管理命令，在对应 Linux SSH 终端运行。交互选项：1 对接面板 / 升级；2 卸载。以 root 权限执行面板提供的脚本。', installGenerate: '生成安装 / 卸载命令', installSecurity: '对接凭证 10 分钟内单次有效，命令请保密。升级保留采集数据；卸载需再次确认，将删除本机配置、数据库和未上报流量，不删除面板历史。'});
+  Object.assign(words['en-US'], {installHint: 'Generate a short command and run in this Linux SSH terminal. Menu: 1 Connect / upgrade; 2 Uninstall. Executes panel-provided code as root.', installGenerate: 'Generate install / uninstall command', installSecurity: 'Connection credential: one use within 10 minutes. Keep private. Upgrades retain state; confirmed uninstall deletes local config, database and pending reports, not panel history.'});
   function language() {
     const value = localStorage.getItem('i18nextLng') || 'zh-CN';
     return value.startsWith('zh') ? 'zh-CN' : value.startsWith('ru') ? 'ru-RU' : 'en-US';
@@ -664,7 +666,7 @@
     for (const state of editors.values()) if (state.installExpires && state.installExpires <= Date.now()) { state.expireInstall?.(); state.installExpires = 0; }
     if (authorized && editors.size) schedule();
   }, 1000);
-  window.__FLOWSCOPE_RUNTIME__ = Object.freeze({version: '2.2.0', destroy, refresh: () => { syncToken(); checkStatus(); schedule(); loadDashboard(); }});
+  window.__FLOWSCOPE_RUNTIME__ = Object.freeze({version: '2.3.0', destroy, refresh: () => { syncToken(); checkStatus(); schedule(); loadDashboard(); }});
   lastToken = token();
   checkStatus();
 })();

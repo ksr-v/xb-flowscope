@@ -31,9 +31,18 @@ foreach (['http://panel.example.test','https://evil.example','https://panel.exam
 checkInstall(installRequest('machine/41/install-ticket',['panel_url'=>'https://panel.example.test','interfaces'=>['eth0','eth0']])->getStatusCode()===422,'duplicate NIC rejected');
 checkInstall(installRequest('machine/999/install-ticket',['panel_url'=>'https://panel.example.test'])->getStatusCode()===404,'missing machine');
 [$data,$ticket]=issueInstall(['interfaces'=>['ens33']]);
-checkInstall(str_contains($data['command'],'--interfaces'),'NIC override encoded');
-checkInstall(str_contains($data['command'],'--ticket-stdin') && str_starts_with($data['command'],'printf '),'credential delivered through stdin');
-checkInstall(!str_contains(explode('| sudo bash -c',$data['command'])[1],$ticket),'root bash argv omits credential');
+checkInstall(str_contains($data['command'],'?interfaces='),'NIC override encoded');
+checkInstall(str_contains($data['command'],'<<< ') && str_starts_with($data['command'],'sudo bash -c '),'credential delivered through stdin');
+checkInstall(!str_contains(explode('<<< ',$data['command'])[0],$ticket),'root bash argv omits credential');
+checkInstall(strlen($data['command']) < 360,'compact command under 360 characters including failure notice');
+checkInstall(str_contains($data['command'],'安装失败'),'command reports entry/sudo failures');
+$shell=flowScopeRequest('GET','https://panel.example.test/api/v2/flowscope/install/41?interfaces=ens33%2Ceth1',[],null);
+checkInstall($shell->getStatusCode()===200 && str_contains($shell->getContent(),'--ticket-stdin'),'public shell delegates to stdin bootstrap');
+checkInstall(str_contains($shell->getContent(),"'ens33,eth1'") && !str_contains($shell->getContent(),$ticket),'shell contains NIC choices but no credential');
+checkInstall(str_contains($shell->headers->get('Cache-Control'),'no-store'),'shell no store');
+foreach(['lo','eth0,eth0','eth0;id','../eth0'] as $bad) {
+    checkInstall(flowScopeRequest('GET','https://panel.example.test/api/v2/flowscope/install/41?interfaces='.rawurlencode($bad),[],null)->getStatusCode()===422,'shell rejects invalid NIC input');
+}
 $stored=DB::table('flowscope_install_tickets')->first();
 checkInstall($stored->ticket_hash===hash('sha256',$ticket) && !str_contains(json_encode($stored),$ticket),'only credential hash persisted');
 checkInstall($stored->expires_at > time() && $stored->expires_at <= time()+600,'ten minute lifetime');
@@ -69,6 +78,7 @@ $script=flowScopeRequest('GET','/api/v2/flowscope/installer',[],null);
 checkInstall($script->getStatusCode()===200 && $script->getContent()===file_get_contents(dirname(__DIR__).'/collector/bootstrap.py'),'extensionless public fixed bootstrap bytes');
 DB::table('v2_plugins')->update(['is_enabled'=>false]);
 checkInstall(flowScopeRequest('GET','/api/v2/flowscope/installer',[],null)->getStatusCode()===404,'disabled bootstrap gated');
+checkInstall(flowScopeRequest('GET','/api/v2/flowscope/install/41',[],null)->getStatusCode()===404,'disabled interactive manager gated');
 checkInstall(installRequest('install/redeem',['ticket'=>$ticket],null)->getStatusCode()===404,'disabled exchange gated');
 (require dirname(__DIR__).'/FlowScope/database/migrations/2026_10_07_000003_create_flowscope_install_tickets_table.php')->down();
 checkInstall(!Schema::hasTable('flowscope_install_tickets'),'owned migration rollback');

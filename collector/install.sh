@@ -34,7 +34,7 @@ config_file=/etc/flowscope-collector.json
 state_dir=/var/lib/flowscope-collector
 unit_file=/etc/systemd/system/flowscope-collector.service
 for target in "$install_dir" "$install_dir/flowscope_collector.py" "$install_dir/flowscope_collector.py.new" \
-              "$config_file" "$state_dir" "$unit_file"; do
+              "$config_file" "$state_dir" "$unit_file" "$install_dir/__pycache__"; do
   [ ! -L "$target" ] || { printf '%s\n' 'Refusing a symlink at an installation target.' >&2; exit 1; }
 done
 for source_file in "$source_dir/flowscope_collector.py" "$source_dir/flowscope-collector.service"; do
@@ -98,6 +98,22 @@ id flowscope >/dev/null 2>&1 || useradd --system --gid flowscope --home-dir "$st
 [ "$(getent group flowscope | cut -d: -f3)" -ne 0 ] || {
   printf '%s\n' 'Refusing flowscope group with gid 0; a dedicated non-root group is required.' >&2; exit 1;
 }
+# Clean only known program/temp residue. Never remove config, SQLite, WAL or outbox.
+if [ -f "$install_dir/flowscope_collector.py" ]; then
+  printf '%s\n' '检测到已有采集器：清理旧程序缓存和临时残留，保留配置与采集数据。'
+fi
+if [ -e "$install_dir/flowscope_collector.py.new" ]; then
+  [ -f "$install_dir/flowscope_collector.py.new" ] || { printf '%s\n' '安装失败：旧临时程序不是普通文件，请手动检查。' >&2; exit 1; }
+  rm -f -- "$install_dir/flowscope_collector.py.new"
+fi
+if [ -d "$install_dir/__pycache__" ]; then
+  for cached in "$install_dir"/__pycache__/flowscope_collector.*.pyc; do
+    [ -e "$cached" ] || [ -L "$cached" ] || continue
+    [ -f "$cached" ] && [ ! -L "$cached" ] || { printf '%s\n' '安装失败：旧缓存路径异常，请手动检查。' >&2; exit 1; }
+    rm -f -- "$cached"
+  done
+  rmdir -- "$install_dir/__pycache__" 2>/dev/null || true
+fi
 install -d -o root -g root -m 0755 -- "$install_dir"
 install -d -o flowscope -g flowscope -m 0700 -- "$state_dir"
 if [ ! -e "$config_file" ]; then
@@ -108,7 +124,7 @@ install -o root -g root -m 0755 -- "$source_dir/flowscope_collector.py" "$instal
 mv -f -- "$install_dir/flowscope_collector.py.new" "$install_dir/flowscope_collector.py"
 install -o root -g root -m 0644 -- "$source_dir/flowscope-collector.service" "$unit_file"
 systemctl daemon-reload
-printf '%s\n' 'Installed collector 2.2.0; configuration and existing state were preserved.' \
+printf '%s\n' 'Installed collector 2.3.0; configuration and existing state were preserved.' \
   'Validate on the host (no HTTP/state mutation):' \
   '  sudo -u flowscope /usr/bin/python3 /opt/flowscope-collector/flowscope_collector.py --check' \
   'First start (explicit): sudo systemctl enable --now flowscope-collector' \

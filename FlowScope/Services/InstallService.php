@@ -18,7 +18,7 @@ final class InstallService
 
     public function file(string $name): string
     {
-        if (!in_array($name, ['bootstrap.py', 'flowscope_collector.py', 'install.sh', 'flowscope-collector.service'], true)) { abort(404); }
+        if (!in_array($name, ['bootstrap.py', 'flowscope_collector.py', 'install.sh', 'flowscope-collector.service', 'manage.sh'], true)) { abort(404); }
         $path = ($this->collectorDirectory ?? dirname(__DIR__).'/collector').'/'.$name;
         if (!is_file($path) || is_link($path)) { abort(503, 'Collector installation files unavailable.'); }
         $contents = file_get_contents($path);
@@ -29,7 +29,7 @@ final class InstallService
     public function issue(string $id, string $url, array $interfaces): array
     {
         // Fail before issuing a usable credential if this upload is incomplete.
-        foreach (['bootstrap.py', 'flowscope_collector.py', 'install.sh', 'flowscope-collector.service'] as $name) { $this->file($name); }
+        foreach (['bootstrap.py', 'flowscope_collector.py', 'install.sh', 'flowscope-collector.service', 'manage.sh'] as $name) { $this->file($name); }
         $ticket = bin2hex(random_bytes(32));
         $expires = time() + 600;
         DB::transaction(function () use ($id, $url, $ticket, $expires): void {
@@ -42,15 +42,21 @@ final class InstallService
                 'machine_token_hash' => hash('sha256', (string) $machine->token), 'panel_url' => $url,
                 'expires_at' => $expires, 'used_at' => null]);
         }, 3);
-        $script = 'set -eu; umask 077; d=$(mktemp -d /tmp/flowscope-install.XXXXXXXX); '
-            .'trap '.self::shellQuote('rm -f -- "$d/bootstrap.py"; rmdir -- "$d"').' EXIT; '
-            .'code=$(curl --proto =https --tlsv1.2 --fail --silent --show-error --max-time 60 --max-filesize 262144 --write-out '.self::shellQuote('%{http_code}').' --output "$d/bootstrap.py" '
-            .self::shellQuote($url.'/api/v2/flowscope/installer').'); [ "$code" = 200 ]; '
-            .'/usr/bin/python3 "$d/bootstrap.py" --panel '.self::shellQuote($url).' --machine-id '.self::shellQuote($id)
-            .' --ticket-stdin';
-        if ($interfaces !== []) { $script .= ' --interfaces '.self::shellQuote(implode(',', $interfaces)); }
-        return ['command' => 'printf '.self::shellQuote('%s\n').' '.self::shellQuote($ticket).' | sudo bash -c '.self::shellQuote($script), 'expires_at' => $expires,
+        $entry = $url.'/api/v2/flowscope/install/'.$id;
+        if ($interfaces !== []) { $entry .= '?interfaces='.rawurlencode(implode(',', $interfaces)); }
+        // Buffer completely before printing: never execute a partial/failed download.
+        $download = 's=$(curl -fsS --max-time 30 --max-filesize 65536 '.self::shellQuote($entry).') && [ -n "$s" ] && printf %s "$s" || echo '.self::shellQuote('exit 1');
+        return ['command' => 'sudo bash -c "$('.$download.')" <<< '.self::shellQuote($ticket).' || { echo 安装失败或卸载失败 >&2; false; }', 'expires_at' => $expires,
             'machine_id' => (int) $id, 'version' => Plugin::VERSION];
+    }
+
+    public function shell(string $id, string $url, array $interfaces): string
+    {
+        return strtr($this->file('manage.sh'), [
+            '__FLOWSCOPE_PANEL__' => self::shellQuote($url),
+            '__FLOWSCOPE_MACHINE__' => self::shellQuote($id),
+            '__FLOWSCOPE_INTERFACES__' => self::shellQuote(implode(',', $interfaces)),
+        ]);
     }
 
     public function redeem(string $ticket): array
