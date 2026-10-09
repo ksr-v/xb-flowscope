@@ -9,7 +9,7 @@ use Plugin\Flowscope\Services\AdminIntegration;
 
 final class Plugin extends AbstractPlugin
 {
-    public const VERSION = '2.3.0';
+    public const VERSION = '2.4.0';
 
     public function boot(): void
     {

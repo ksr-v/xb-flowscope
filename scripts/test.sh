@@ -8,6 +8,7 @@ php tests/integration.php
 php tests/install.php
 php tests/upgrade-install.php
 php tests/upgrade-install.php 2.1.1
+php tests/upgrade-install.php 2.3.0
 php tests/ipv4.php
 node --check FlowScope/resources/assets/flowscope.js
 python3 tests/collector_test.py

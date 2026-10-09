@@ -1,7 +1,7 @@
 {
     "name": "FlowScope",
     "code": "flowscope",
-    "version": "2.3.0",
+    "version": "2.4.0",
     "description": "Persistent machine NIC traffic quotas and monthly-cycle monitoring in Xboard Admin.",
     "author": "FlowScope Contributors",
     "type": "feature",

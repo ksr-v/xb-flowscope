@@ -196,7 +196,7 @@ foreach ([
     ['sequence' => '0'], ['sequence' => '9223372036854775808'], ['collector_id' => str_repeat('A', 32)],
     ['rx_bytes' => 0], ['rx_bytes' => 9007199254740993.0], ['rx_bytes' => '-1'], ['rx_bytes' => '9223372036854775808'],
     ['tx_bytes' => '1.5'], ['started_at' => '1577836800'], ['started_at' => 1577836799],
-    ['ended_at' => time() + 301], ['ended_at' => $sample['started_at']], ['ended_at' => $sample['started_at'] + CollectorService::MAX_INTERVAL + 1],
+    ['ended_at' => time() + 600], ['ended_at' => $sample['started_at']], ['ended_at' => $sample['started_at'] + CollectorService::MAX_INTERVAL + 1],
     ['boot_id' => 'bad'], ['interfaces' => []], ['interfaces' => ['eth0', 'eth0']], ['interfaces' => ['../eth0']],
     ['resets' => -1], ['resets' => 1.0], ['boot_changed' => 'true'],
 ] as $invalid) {

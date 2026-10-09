@@ -82,6 +82,7 @@ Schema::create('v2_server', function (Blueprint $table): void {
     $table->string('name');
     $table->unsignedBigInteger('parent_id')->nullable();
     $table->unsignedBigInteger('machine_id')->nullable();
+    $table->boolean('enabled')->default(true);
     $table->unsignedBigInteger('u')->default(0);
     $table->unsignedBigInteger('d')->default(0);
     $table->timestamps();

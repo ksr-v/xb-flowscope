@@ -40,7 +40,7 @@ final class CollectorService
                     if ($comparison === 0 && !hash_equals($cursor->last_digest, $digest)) {
                         $this->conflict('The latest sequence was already accepted with different content.');
                     }
-                    $this->saveAddress((int) $machine->id, $ipv4);
+                    app(AddressService::class)->accept((int) $machine->id, $ipv4, 'collector');
                     return ['accepted' => true, 'sequence' => $report['sequence'], 'duplicate' => true];
                 }
                 $expected = $this->bytes->add($cursor->sequence, '1');
@@ -69,16 +69,9 @@ final class CollectorService
                 'interfaces' => $report['interfaces'], 'resets' => $cursor->resets + $report['resets'],
                 'boot_changes' => $cursor->boot_changes + ($report['boot_changed'] ? 1 : 0),
             ])->save();
-            $this->saveAddress((int) $machine->id, $ipv4);
+            app(AddressService::class)->accept((int) $machine->id, $ipv4, 'collector');
             return ['accepted' => true, 'sequence' => $report['sequence'], 'duplicate' => false];
         }, 3);
-    }
-
-    private function saveAddress(int $id, ?string $ipv4): void
-    {
-        // Optional authenticated metadata, deliberately outside the durable report digest.
-        if (!is_string($ipv4) || !filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) { return; }
-        DB::table('flowscope_machine_addresses')->updateOrInsert(['machine_id' => $id], ['ipv4' => $ipv4, 'updated_at' => time()]);
     }
 
     /** Exact byte conservation; only placement across a boundary is prorated. */

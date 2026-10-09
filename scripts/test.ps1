@@ -16,6 +16,8 @@ foreach ($taskTest in @('backend.php', 'integration.php', 'install.php', 'upgrad
 }
 & php @taskPhpArgs (Join-Path $PSScriptRoot '../tests/upgrade-install.php') '2.1.1'
 if ($LASTEXITCODE -ne 0) { throw '2.1.1 upgrade test failed' }
+& php @taskPhpArgs (Join-Path $PSScriptRoot '../tests/upgrade-install.php') '2.3.0'
+if ($LASTEXITCODE -ne 0) { throw '2.3.0 upgrade test failed' }
 & node --check (Join-Path $PSScriptRoot '../FlowScope/resources/assets/flowscope.js')
 if ($LASTEXITCODE -ne 0) { throw 'JavaScript syntax failed' }
 & python (Join-Path $PSScriptRoot '../tests/collector_test.py')

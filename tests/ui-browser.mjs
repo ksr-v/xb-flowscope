@@ -22,7 +22,8 @@ const artifacts = join(root, 'tests/.runtime/ui');
 mkdirSync(artifacts, {recursive: true});
 const profile = mkdtempSync(join(artifacts, 'browser-profile-'));
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-const config = {version: '2.3.0', enabled: true, apiBase: '/api/v2/flowscope', statusUrl: '/api/v2/flowscope/status', timezone: 'Asia/Shanghai', owner: 'flowscope', compatibility: {supported: true, build: 'index-CEIYH7i8.js'}};
+const version = JSON.parse(readFileSync(join(root, 'FlowScope/config.json'), 'utf8')).version;
+const config = {version, enabled: true, apiBase: '/api/v2/flowscope', statusUrl: '/api/v2/flowscope/status', timezone: 'Asia/Shanghai', owner: 'flowscope', compatibility: {supported: true, build: 'index-CEIYH7i8.js'}};
 let statusEnabled = true, statusCode = 200, dashboardMode = 'normal', dashboardDelay = 0, installLifetime = 600;
 let stored = {enabled: true, display_name: 'Saved physical server', quota_bytes: '1099511627777', traffic_mode: 'outbound', cycle_start_day: 31};
 let collector = {id: 'isolated-collector', status: 'active', last_report_at: 1791345600, first_sample_at: 1791342000, interfaces: ['eth0']};
@@ -63,7 +64,7 @@ const injected = spawnSync(process.env.FLOWSCOPE_PHP || 'php', [], {input: phpFi
 assert.equal(injected.status, 0, 'Actual PHP injector executes; set FLOWSCOPE_PHP or add PHP to PATH. ' + (injected.stderr || ''));
 const html = injected.stdout;
 assert.equal((html.match(/data-flowscope-loader/g) || []).length, 1, 'Actual PHP output contains one owned loader');
-assert(html.includes('src="/api/v2/flowscope/assets/script?v=2.3.0"') && html.includes('href="/api/v2/flowscope/assets/style?v=2.3.0"'), 'Actual PHP injector emits extensionless versioned JS/CSS URLs');
+assert(html.includes(`src="/api/v2/flowscope/assets/script?v=${version}"`) && html.includes(`href="/api/v2/flowscope/assets/style?v=${version}"`), 'Actual PHP injector emits extensionless versioned JS/CSS URLs');
 const http = createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   if (url.pathname.startsWith('/api/v2/flowscope/assets/')) {
@@ -76,7 +77,7 @@ const http = createServer(async (request, response) => {
     let raw = ''; for await (const chunk of request) raw += chunk;
     apiRequests.push({path: url.pathname, method: request.method, authorization: request.headers.authorization, body: raw ? JSON.parse(raw) : null});
     if (url.pathname.endsWith('/flowscope/status')) return json(response, {...config, enabled: statusEnabled}, statusCode);
-    if (url.pathname.endsWith('/flowscope/machine-addresses')) return json(response, {data: {machines: [{machine_id: 41, ipv4: '8.8.4.4', updated_at: Math.floor(Date.now()/1000)}, {machine_id: 42, ipv4: '2001:db8::1', updated_at: Math.floor(Date.now()/1000)}]}});
+    if (url.pathname.endsWith('/flowscope/machine-addresses')) return json(response, {data: {machines: [{machine_id: 41, ipv4: '8.8.4.4', updated_at: Math.floor(Date.now()/1000)-43200, source: 'node', stale: false}, {machine_id: 42, ipv4: '2001:db8::1', updated_at: Math.floor(Date.now()/1000)}], nodes: [{node_id: 9, ipv4: '9.9.9.9', updated_at: Math.floor(Date.now()/1000), source: 'node', stale: false}]}});
     if (url.pathname.endsWith('/flowscope/dashboard')) {
       const result = dashboardMode === 'empty' ? [] : traffic.map(s => ({...s, ...(dashboardMode === 'waiting-history' && s.machine_id === 44 ? {used_bytes: '268435456', outbound_bytes: '268435456', percentage: 25} : {}), name: request.headers.authorization === 'new-admin-token' ? 'New account ' + s.name : s.name}));
       if (dashboardDelay) await sleep(dashboardDelay);
@@ -95,7 +96,7 @@ const http = createServer(async (request, response) => {
     if (url.pathname.endsWith('/flowscope/machines')) return json(response, {data: {machines: [machineFixture, {...machineFixture, id: 42}].map(m => ({machine_id: m.id, name: m.name, settings: stored}))}});
     if (url.pathname.endsWith('/stat/getStats')) return json(response, {data: {todayIncome: 0, currentMonthIncome: 0, dayIncomeGrowth: 0, monthIncomeGrowth: 0, ticketPendingTotal: 0, commissionPendingTotal: 0, currentMonthNewUsers: 0, userGrowth: 0, totalUsers: 1, activeUsers: 0, monthTraffic: {upload: 0, download: 0}, todayTraffic: {upload: 0, download: 0}}});
     if (url.pathname.endsWith('/stat/getOrder')) return json(response, {data: {summary: {start_date: '2026-10-01', end_date: '2026-10-31', paid_total: 0, commission_total: 0, paid_count: 0, commission_count: 0, commission_rate: 0, avg_paid_amount: 0}, list: []}});
-    if (url.pathname.endsWith('/server/manage/getNodes')) return json(response, {data: [serverFixture, {...serverFixture, id: 9, type: 'trojan'}]});
+    if (url.pathname.endsWith('/server/manage/getNodes')) return json(response, {data: [serverFixture, {...serverFixture, id: 9, type: 'trojan', machine_id: null}]});
     if (url.pathname.endsWith('/server/machine/fetch')) return json(response, {data: [machineFixture, {...machineFixture, id: 42, notes: 'Second same-name machine'}]});
     if (url.pathname.endsWith('/system/getQueueStats') || url.pathname.endsWith('/system/getSystemStatus')) return json(response, {data: null});
     return json(response, {data: [], total: 0});
@@ -136,7 +137,7 @@ try {
     assert.equal(blocked.status, 404, 'Static-suffix proxy reproduces the production 404: ' + legacy);
   }
   for (const [asset, mime] of [['script', 'application/javascript'], ['style', 'text/css']]) {
-    const response = await fetch(origin + '/api/v2/flowscope/assets/' + asset + '?v=2.3.0');
+    const response = await fetch(origin + '/api/v2/flowscope/assets/' + asset + '?v=' + version);
     assert.equal(response.status, 200, 'Extensionless asset survives the static-suffix proxy: ' + asset);
     assert(response.headers.get('content-type').startsWith(mime), 'Extensionless asset retains the browser MIME type: ' + asset);
   }
@@ -180,8 +181,8 @@ try {
   await cdp('Page.navigate', {url: origin + '/'});
   await wait('document.querySelector("#flowscope-period-traffic")?.textContent.includes("Loading traffic")', 'Loading state renders');
   await wait('document.querySelectorAll(".flowscope-server").length===5', 'Actual native dashboard mounts');
-  assert.equal(await evaluate('window.__FLOWSCOPE__.version + ":" + window.__FLOWSCOPE_RUNTIME__.version'), '2.3.0:2.3.0', 'Real PHP inline loader and browser runtime agree on version');
-  assert.equal(await evaluate('document.querySelector("[data-flowscope-owner]").getAttribute("data-flowscope-owner")'), 'flowscope-2.3.0', 'UI ownership marker uses the version');
+  assert.equal(await evaluate('window.__FLOWSCOPE__.version + ":" + window.__FLOWSCOPE_RUNTIME__.version'), version + ':' + version, 'Real PHP inline loader and browser runtime agree on version');
+  assert.equal(await evaluate('document.querySelector("[data-flowscope-owner]").getAttribute("data-flowscope-owner")'), 'flowscope-' + version, 'UI ownership marker uses the version');
   assert.equal(await evaluate('document.querySelector(".flowscope-over .flowscope-percentage").textContent'), '127.4%');
   assert.equal(await evaluate('document.querySelector(".flowscope-over .flowscope-progress-fill").style.width'), '100%');
   assert.equal(await evaluate('document.querySelectorAll(".flowscope-over-badge").length'), 2, 'Exact backend over-quota flag survives percentage rounding');
@@ -248,6 +249,7 @@ try {
   await cdp('Emulation.setDeviceMetricsOverride', {width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false});
   await cdp('Page.navigate', {url: origin + '/#/server/manage'});
   await wait(`document.querySelectorAll('button[aria-label="Actions"]').length>0`, 'Native server table loads');
+  await wait('document.querySelector(\'.flowscope-machine-ip[data-node-id="9"]\')?.textContent.includes("9.9.9.9")', 'Unassigned legacy node displays node-scoped address without guessed machine');
   await click('button[aria-label="Actions"]');
   await wait('[...document.querySelectorAll("[role=menuitem]")].some(n=>n.textContent.trim()==="Edit")', 'Native action menu opens');
   await evaluate('[...document.querySelectorAll("[role=menuitem]")].find(n=>n.textContent.trim()==="Edit").click()');
@@ -256,12 +258,22 @@ try {
   await cdp('Page.navigate', {url: origin + '/#/server/machine'});
   await wait('document.querySelectorAll(\'button[aria-label="Edit Server"]\').length===2', 'Real physical-server table loads same-name machines');
   await wait('document.querySelector(\'.flowscope-machine-ip[data-machine-id="41"]\')?.textContent.includes("8.8.4.4")', 'Machine IPv4 appears under native heartbeat metadata');
-  assert.equal(await evaluate('document.querySelector(\'.flowscope-machine-ip[data-machine-id="42"]\').textContent'), 'IPv4: Not reported', 'IPv6 is never displayed as machine IPv4');
+  assert.equal(await evaluate('document.querySelector(\'.flowscope-machine-ip[data-machine-id="42"]\').textContent'), 'IPv4: Waiting', 'IPv6 is never displayed as machine IPv4');
+  assert.equal(await evaluate('document.querySelector(\'.flowscope-machine-ip[data-machine-id="41"]\').textContent'), 'IPv4: 8.8.4.4', '12-hour Node observation follows Node freshness rather than collector TTL');
+  assert((await evaluate('document.querySelector(\'.flowscope-machine-ip[data-machine-id="41"]\').title')).includes('Xboard-Node'), 'Source and last successful detection time available');
   await screenshot('machine-ipv4-desktop');
   await click('button[aria-label="Edit Server"]');
   await wait('document.querySelector("input[name=flowscope_display_name]")', 'Native physical form fiber provides exact machine identity');
   assert(apiRequests.some(r => r.path === '/api/v2/flowscope/machine/41') && !apiRequests.some(r => r.path === '/api/v2/flowscope/machine/42'), 'Same-name physical servers resolve by exact native id');
   assert.equal(await evaluate('document.querySelector(".flowscope-editor").closest("form")'), null, 'FlowScope region is a sibling, never inside the native form');
+  await evaluate('document.querySelector("input[name=flowscope_enabled]").click()');
+  await evaluate('document.querySelector(".flowscope-editor-actions button").click()');
+  await wait('document.querySelector(".flowscope-save-status")?.textContent.includes("settings saved")', 'Periodic traffic can be disabled independently');
+  assert.equal(apiRequests.findLast(r=>r.path==='/api/v2/flowscope/machine/41'&&r.method==='POST').body.enabled, false, 'Traffic-off setting persisted');
+  assert((await evaluate('document.querySelector(\'.flowscope-machine-ip[data-machine-id="41"]\').textContent')).includes('8.8.4.4'), 'IPv4 stays visible after periodic traffic is disabled');
+  await evaluate('document.querySelector("input[name=flowscope_enabled]").click()');
+  await evaluate('document.querySelector(".flowscope-editor-actions button").click()');
+  await wait('document.querySelector(".flowscope-save-status")?.textContent.includes("settings saved")', 'Traffic switch restored for existing regression checks');
   assert.equal(await evaluate('document.querySelector(".flowscope-machine-id").textContent'), 'machine_id: 41', 'Collector hint uses exact machine id');
   assert.equal(apiRequests.some(r => /server\/machine\/getToken/.test(r.path)), false, 'Collector hints never fetch or expose native server tokens');
   const beforeNative = apiRequests.filter(r => /server\/(?:machine|manage)\/(save|update)/.test(r.path)).length;
@@ -345,7 +357,7 @@ try {
   await screenshot('native-editor-mobile', false);
   assert.equal(await evaluate('document.querySelector(".flowscope-editor").scrollWidth <= document.querySelector(".flowscope-editor").clientWidth'), true, 'Editor fits mobile');
   // Duplicate script execution must retain one adapter, observer and editor section.
-  await evaluate(`fetch('/api/v2/flowscope/assets/script?v=2.3.0').then(r=>r.text()).then(code=>(0,eval)(code))`);
+  await evaluate(`fetch('/api/v2/flowscope/assets/script?v=${version}').then(r=>r.text()).then(code=>(0,eval)(code))`);
   assert.equal(await evaluate('document.querySelectorAll(".flowscope-editor").length'), 1);
   // Ambiguous form providers are rejected without guessing a server from its name.
   await evaluate(`(()=>{const p=document.querySelector('[role="dialog"][data-state="open"] form input[name=name]');let f=p[Object.keys(p).find(k=>k.startsWith('__reactFiber$'))];while(f&&!f.memoizedProps?.getValues)f=f.return;window.__testOriginalProps=f.return.memoizedProps;window.__testFiber=f.return;f.return.memoizedProps={...f.return.memoizedProps,getValues:()=>({id:42,name:'Duplicate physical server',notes:'',is_active:true}),control:{}};})()`);
@@ -382,7 +394,7 @@ try {
   await evaluate('window.__FLOWSCOPE_RUNTIME__.refresh()');
   await wait('!window.__FLOWSCOPE_RUNTIME__', 'Disabled plugin destroys adapter');
   mobileLayout.disabledNative = await layoutMetrics();
-  assert.equal(await evaluate('document.querySelectorAll(\'[data-flowscope-owner],[data-flowscope-hidden],[data-flowscope-asset],[data-flowscope-machine-dialog="flowscope-2.3.0"]\').length'), 0);
+  assert.equal(await evaluate(`document.querySelectorAll('[data-flowscope-owner],[data-flowscope-hidden],[data-flowscope-asset],[data-flowscope-machine-dialog="flowscope-${version}"]').length`), 0);
   assert.equal(await evaluate('document.querySelector("[data-foreign]").getAttribute("data-flowscope-machine-dialog")'), 'foreign-owner', 'Foreign marker value is not removed by dialog cleanup');
   assert.equal(await evaluate('document.querySelector("#foreign-style").textContent.includes("smart-expiry:keep") && !!document.querySelector("[data-foreign]")'), true, 'Foreign style and markers preserved');
   statusEnabled = true; dashboardMode = 'normal';
@@ -400,16 +412,16 @@ try {
     await cdp('Page.navigate', {url: origin + '/?lang=' + lang});
     await wait('document.querySelectorAll(".flowscope-server").length===5 && document.querySelectorAll("[data-flowscope-hidden]").length===12', lang + ' exact locale hides only native target components');
   }
-  await evaluate(`window.__FLOWSCOPE_RUNTIME__.destroy();window.__FLOWSCOPE__.compatibility.supported=false;fetch('/api/v2/flowscope/assets/script?v=2.3.0').then(r=>r.text()).then(code=>(0,eval)(code))`);
+  await evaluate(`window.__FLOWSCOPE_RUNTIME__.destroy();window.__FLOWSCOPE__.compatibility.supported=false;fetch('/api/v2/flowscope/assets/script?v=${version}').then(r=>r.text()).then(code=>(0,eval)(code))`);
   assert.equal(await evaluate('!!window.__FLOWSCOPE_RUNTIME__ || !!document.querySelector("[data-flowscope-owner]")'), false, 'Unsupported builds fail closed');
   console.log('PASS actual native Admin through static-suffix proxy and actual PHP loader: physical machine identity and same-name edits; node editor excluded; unsaved machine prompt; independent exact save and Enter isolation; NIC RX/TX, waiting/stale/coverage; confirmed collector reset preserving history; native/plugin mobile scroll reachability; loading/error/retry/empty; over-quota; light/dark; en/zh/ru locale; duplicate load; disable/401 restore; foreign ownership; reload re-enable; unsupported build.');
-  writeFileSync(join(artifacts, 'browser-results.json'), JSON.stringify({result: 'PASS', version: '2.3.0', checks: {...checks, total: checks.assertions + checks.states}, loaderPipeline: 'Actual AdminIntegration::inject PHP output with fixture application dependencies', proxy: {staticSuffixRule: true, rejectedAssetPaths}, mobileLayout, mobileControls, confirmations, nativeBuild: 'index-CEIYH7i8.js', requests: apiRequests, runtimeErrors: errors}, null, 2));
+  writeFileSync(join(artifacts, 'browser-results.json'), JSON.stringify({result: 'PASS', version, checks: {...checks, total: checks.assertions + checks.states}, loaderPipeline: 'Actual AdminIntegration::inject PHP output with fixture application dependencies', proxy: {staticSuffixRule: true, rejectedAssetPaths}, mobileLayout, mobileControls, confirmations, nativeBuild: 'index-CEIYH7i8.js', requests: apiRequests, runtimeErrors: errors}, null, 2));
   if (errors.length) throw new Error('Native browser runtime errors: ' + JSON.stringify(errors));
 } catch (error) {
   if (cdp) {
     try { const shot = await cdp('Page.captureScreenshot', {format: 'png'}); writeFileSync(join(artifacts, 'failure.png'), Buffer.from(shot.data, 'base64')); } catch {}
   }
-  writeFileSync(join(artifacts, 'browser-results.json'), JSON.stringify({result: 'FAIL', version: '2.3.0', checks: {...checks, total: checks.assertions + checks.states}, proxy: {staticSuffixRule: true, rejectedAssetPaths}, mobileLayout, mobileControls, message: error.message, requests: apiRequests, runtimeErrors: errors}, null, 2));
+  writeFileSync(join(artifacts, 'browser-results.json'), JSON.stringify({result: 'FAIL', version, checks: {...checks, total: checks.assertions + checks.states}, proxy: {staticSuffixRule: true, rejectedAssetPaths}, mobileLayout, mobileControls, message: error.message, requests: apiRequests, runtimeErrors: errors}, null, 2));
   throw error;
 } finally {
   ws?.close(); browser.kill(); await new Promise(resolve => proxy.close(resolve)); await new Promise(resolve => http.close(resolve));

@@ -1,4 +1,14 @@
-# FlowScope 2.3.0 development
+# FlowScope 2.4.0 development
+
+## Unified IPv4 extension
+
+AddressService is the sole validator, source selector and writer. Existing flowscope_machine_addresses retains its primary machine_id, selected ipv4/updated_at and adds only nullable node_ipv4/node_updated_at/collector_ipv4/collector_updated_at. Existing rows backfill as collector observations. A fresh Node (24h) wins, then fresh collector (2h), then the latest retained valid machine result marked stale. Server receipt time minus bounded observation age orders Node results; client absolute clocks are never accepted. Old collector metadata retains receipt-time semantics and remains outside the durable payload/digest.
+
+Enabled POST /api/v2/flowscope/node-address is needed because native reports have no plugin-owned IP hook. It uses existing credentials in bounded JSON, exact native identities, native row locks, public IPv4 validation and authenticated rate limiting. Machine tokens can write only their own machine; child nodes must belong to it. Legacy server_token is panel-wide, not a per-node secret: node-mode observations use expiring node-scoped cache, never machine-table writes. The same AddressService merges them at read time using current DB relationships, including a safe unassigned-node display. No new table, credential, dependency, queue or native schema.
+
+Node reuses Client transport/auth injection and successful native HTTP scheduling. One process-wide stdlib probe cache; 12h success/5min failure cadence; tcp4, verified TLS, no environment proxy/redirect, 3s deadline. Optional panel POST is asynchronous, 5s, refuses redirects and preserves configured transport (HTTP stays HTTP, HTTPS validates certificates). 404/405/501 or invalid ACK cache 10min; 401/403 cache 15min; 429 clamps Retry-After; transport/5xx back off 1..15min. Success refreshes hourly with observation age. No additional timer loop/process/service/listener/config. Machine children skip duplicated reports.
+
+The existing UI formatter respects server freshness, provides source/detection-time tooltip and also renders unassigned node results. Address reads never depend on traffic settings. Python collector/installer/outbox and RX/TX implementation remain unchanged; bundled collector intentionally still identifies as 2.3.0. Historical sections below retain their original release contracts.
 
 ## Compact interactive manager
 

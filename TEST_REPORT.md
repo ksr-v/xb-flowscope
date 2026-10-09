@@ -1,4 +1,21 @@
-# FlowScope 2.3.0 test report
+# FlowScope 2.4.0 test report
+
+Date: 2026-10-09, Asia/Shanghai. Scope: automatic Node egress IPv4, independent of Python/traffic settings, one shared address service and backward-compatible collector ingestion. Candidate Node version: v1.13-orphan.2. Local work only; no push, release or production deployment.
+
+- PASS Windows regression: 28 plugin PHP syntax checks; backend 210; integration 123; installer 76; IPv4 66; native upgrades from 2.0.0/2.1.1/2.3.0: 14/14/17 checks. Historical flow/settings, old IPv4, repeat migration and metadata-only rollback preserved. Final affected integration/install/IPv4/upgrade suites rerun after the last migration guard change.
+- PASS unchanged Python collector: 59 tests (56 pass, 3 POSIX skips); bootstrap 8 (7 pass, 1 POSIX skip); cross-language accounting/protocol 2/2. No collector runtime, installer, outbox, digest or measurement algorithm changes. The collector retains its existing 2.3.0 internal version; the source-exact distribution tarball follows the plugin's 2.4.0 release name.
+- PASS actual audited Admin browser fixture: 139 checks (97 assertions + 42 states), runtimeErrors empty. Native machine and legacy node address display, source/time tooltip, Node 24-hour validity, saved traffic-disable retaining IPv4, and existing mobile/theme/locale/ownership/cleanup regressions covered. Screenshots inspected. This is a native-bundle fixture, not a production Admin login.
+- PASS final uploaded ZIP lifecycle: 199 checks; source-exact release archives: 2/2. Actual extracted AddressService/controller/routes/migrations exercised, Node-only reporting before any traffic/cursor, old collection unchanged, native install/disable/reenable/uninstall tested. The new upgrade guide is included in the ZIP; no remote release was created.
+- PASS Node full production-tag internal suite through python tools/dependencies.py test --host, including the final bounded strict-JSON ACK parser. Actual Go HTTPS Client payloads pass the real PHP receiver/native models/routes in six machine/node/auth/disable cases. FLOWSCOPE_TEST_RECEIVER explicitly enables this cross-runtime test. FLOWSCOPE_TEST_LIVE_IP=1 passed the real IP.SB HTTPS IPv4 probe on this Windows workstation; ordinary tests stub external lookups.
+- PASS Node focused cases: public-only validation, IPv4-only/no-proxy/TLS/no-redirect transport, malformed/oversized response, 20 concurrent clients sharing a process cache, detection expiry/failure/recovery, existing-binding initial success, missing/old/disabled plugin and reenable, multi-panel isolation, machine-child deduplication, 401/403/404/405/429/5xx/timeout classification and bounded retries. Separate OS processes do not share a persistent probe cache.
+- PASS Linux amd64 and arm64 builds using the existing fixed dependency tool, with the final committed Node source rebuilt before delivery. No module/dependency or installer changes. Cross-compilation is not a real Linux installation or proxy-client continuity test.
+- Security boundary: machine credentials cannot update a different machine or mismatched child. Legacy native server_token is panel-wide, not a per-node secret: an authorized holder can name another enabled legacy node, just as in native node authentication. Its new reports stay in expiring node cache and never write the machine address table; current database relationships are resolved for display. Per-machine isolation requires existing machine mode. No claim of cryptographic per-node isolation is made.
+- NOT RUN for this version: new Linux/ARM64 native installation or in-place service upgrade; real proxy sessions during restart; production MySQL/MariaDB/Octane/Nginx; bare-metal networking and hard power loss. Historical VM results below are not substituted for current verification. Node upgrade restarts the existing service and may interrupt sessions.
+- Test harness corrections: future-invalid timestamp margin increased from 301 to 600 seconds to avoid a wall-clock boundary flake; timeout fixture now has a bounded cleanup path. These do not change production accounting or timeout policy.
+
+Delivery/upgrade/rollback: [docs/UPGRADE_v2.4.0.md](docs/UPGRADE_v2.4.0.md). Runtime evidence is in ignored tests/.runtime; no production credentials or state are shipped.
+
+## Historical v2.3.0 test report
 
 Date: 2026-10-08, Asia/Shanghai. New scope: compact buffered-download command, interactive management, known old-program residue cleanup, explicit success/failure and confirmed uninstall.
 

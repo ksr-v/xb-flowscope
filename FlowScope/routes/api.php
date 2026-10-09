@@ -7,6 +7,7 @@ use Plugin\Flowscope\Controllers\AssetController;
 use Plugin\Flowscope\Controllers\TrafficController;
 use Plugin\Flowscope\Controllers\CollectorController;
 use Plugin\Flowscope\Controllers\InstallController;
+use Plugin\Flowscope\Controllers\AddressController;
 use Plugin\Flowscope\Middleware\EnsureEnabled;
 
 Route::prefix('api/v2/flowscope')->group(function (): void {
@@ -21,6 +22,7 @@ Route::prefix('api/v2/flowscope')->group(function (): void {
 
     // Machine authentication is separate from Admin and node-only server.v2.
     Route::post('collect', [CollectorController::class, 'store'])->middleware(EnsureEnabled::class);
+    Route::post('node-address', [AddressController::class, 'store'])->middleware(EnsureEnabled::class);
     Route::get('installer', [InstallController::class, 'bootstrap'])->middleware(EnsureEnabled::class);
     Route::get('install/{id}', [InstallController::class, 'shell'])->whereNumber('id')->middleware(EnsureEnabled::class);
     Route::post('install/redeem', [InstallController::class, 'redeem'])->middleware(EnsureEnabled::class);

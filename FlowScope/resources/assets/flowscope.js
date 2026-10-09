@@ -1,4 +1,4 @@
-/* FlowScope 2.3.0. Read-only adapter for the audited Xboard Admin build.
+/* FlowScope 2.4.0. Read-only adapter for the audited Xboard Admin build.
  * No native React state, route, request, or shared asset is changed. */
 (() => {
   'use strict';
@@ -7,7 +7,7 @@
   if (!config || config.enabled !== true || config.compatibility?.supported !== true ||
       config.compatibility.build !== 'index-CEIYH7i8.js') return;
 
-  const OWNER = 'flowscope-2.3.0';
+  const OWNER = 'flowscope-' + config.version;
   const OWN = '[data-flowscope-owner="' + OWNER + '"]';
   const HIDDEN = 'data-flowscope-hidden';
   const apiBase = String(config.apiBase || '/api/v2/flowscope').replace(/\/$/, '');
@@ -20,7 +20,7 @@
   let dashboard = null, dashboardBusy = false, dashboardUpdated = 0, dashboardAttempted = 0, lastToken = '';
   let dashboardRequest = 0;
   let generation = 0;
-  let addresses = new Map(), addressAttempted = 0, addressBusy = false;
+  let addresses = new Map(), nodeAddresses = new Map(), addressAttempted = 0, addressBusy = false;
 
   const navPaths = {
     '/config/notice': 'noticeManagement', '/config/payment': 'paymentConfig',
@@ -96,7 +96,7 @@
   }
   function clearUI() {
     generation++;
-    addresses.clear(); addressAttempted = 0; addressBusy = false;
+    addresses.clear(); nodeAddresses.clear(); addressAttempted = 0; addressBusy = false;
     restoreHidden();
     for (const node of document.querySelectorAll(OWN)) node.remove();
     editors.clear();
@@ -583,13 +583,15 @@
     state.body.onkeydown = event => { if (event.key === 'Enter' && event.target.tagName !== 'BUTTON') { event.preventDefault(); event.stopPropagation(); } };
   }
   function mountMachineAddresses() {
-    if (location.hash.split('?')[0] !== '#/server/machine') return;
+    const path = location.hash.split('?')[0];
+    if (!['#/server/machine', '#/server/manage'].includes(path)) return;
     if (!addressBusy && Date.now() - addressAttempted >= 60000) {
       addressBusy = true; addressAttempted = Date.now();
       const revision = generation;
       request('/machine-addresses').then(data => {
         if (stopped || revision !== generation) return;
         addresses = new Map((Array.isArray(data.machines) ? data.machines : []).filter(v => /^[1-9]\d*$/.test(String(v.machine_id)) && validIPv4(v.ipv4)).map(v => [String(v.machine_id), v]));
+        nodeAddresses = new Map((Array.isArray(data.nodes) ? data.nodes : []).filter(v => /^[1-9]\d*$/.test(String(v.node_id)) && validIPv4(v.ipv4)).map(v => [String(v.node_id), v]));
         schedule();
       }).catch(() => {}).finally(() => { if (revision === generation) addressBusy = false; });
     }
@@ -598,6 +600,19 @@
       if (span.closest(OWN)) continue;
       let item = fiber(span), count = 0;
       while (item && count++ < 30) {
+        const node = item.memoizedProps?.node;
+        if (path === '#/server/manage' && node && !node.machine_id && /^[1-9]\d*$/.test(String(node.id)) &&
+            span.textContent === node.name && span.classList.contains('cursor-default')) {
+          const parent = span.parentElement;
+          if (!seen.has(parent)) {
+            seen.add(parent);
+            let line = parent.querySelector(':scope > .flowscope-machine-ip');
+            if (!line) { line = owned(el('small', 'flowscope-machine-ip')); span.after(line); }
+            line.dataset.nodeId = String(node.id);
+            renderAddress(line, nodeAddresses.get(String(node.id)));
+          }
+          break;
+        }
         if (item.type?.name === 'c3t') {
           const id = String(item.memoizedProps?.machine?.id || '');
           const card = item.child?.stateNode;
@@ -607,14 +622,19 @@
           let line = content.querySelector(':scope > .flowscope-machine-ip');
           if (!line) { line = owned(el('p', 'flowscope-machine-ip')); meta.after(line); }
           line.dataset.machineId = id;
-          const record = addresses.get(id), fresh = record && Date.now()/1000 - Number(record.updated_at) < 7200;
-          const text = 'IPv4: ' + (record ? record.ipv4 + (fresh ? '' : (language() === 'zh-CN' ? '（最后已知）' : ' (last known)')) : (language() === 'zh-CN' ? '暂无 IPv4' : 'Not reported'));
-          if (line.textContent !== text) line.textContent = text;
+          renderAddress(line, addresses.get(id));
           break;
         }
         item = item.return;
       }
     }
+  }
+  function renderAddress(line, record) {
+    const fresh = record && (typeof record.stale === 'boolean' ? !record.stale : Date.now()/1000 - Number(record.updated_at) < 7200);
+    const text = 'IPv4: ' + (record ? record.ipv4 + (fresh ? '' : (language() === 'zh-CN' ? '（最后已知）' : ' (last known)')) : (language() === 'zh-CN' ? '待获取' : 'Waiting'));
+    if (line.textContent !== text) line.textContent = text;
+    const source = record?.source === 'node' ? 'Xboard-Node' : 'FlowScope Collector';
+    line.title = record ? source + ' · ' + new Date(Number(record.updated_at) * 1000).toLocaleString() : '';
   }
   function validIPv4(value) {
     return typeof value === 'string' && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value) && value.split('.').every(v => Number(v) <= 255 && String(Number(v)) === v);
@@ -661,12 +681,12 @@
     if (current !== lastToken) syncToken();
     if (++ticks % 15 === 0) checkStatus();
     if (authorized && dashboard?.isConnected && Date.now() - dashboardAttempted >= 60000) loadDashboard();
-    if (authorized && location.hash.startsWith('#/server/machine') && Date.now() - addressAttempted >= 60000) schedule();
+    if (authorized && ['#/server/machine', '#/server/manage'].includes(location.hash.split('?')[0]) && Date.now() - addressAttempted >= 60000) schedule();
     // React may reuse the same dialog DOM while switching machine identity.
     for (const state of editors.values()) if (state.installExpires && state.installExpires <= Date.now()) { state.expireInstall?.(); state.installExpires = 0; }
     if (authorized && editors.size) schedule();
   }, 1000);
-  window.__FLOWSCOPE_RUNTIME__ = Object.freeze({version: '2.3.0', destroy, refresh: () => { syncToken(); checkStatus(); schedule(); loadDashboard(); }});
+  window.__FLOWSCOPE_RUNTIME__ = Object.freeze({version: config.version, destroy, refresh: () => { syncToken(); checkStatus(); schedule(); loadDashboard(); }});
   lastToken = token();
   checkStatus();
 })();

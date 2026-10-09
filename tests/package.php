@@ -45,6 +45,7 @@ $required = [
     'Plugin.php', 'config.json', 'routes/api.php',
     'Controllers/TrafficController.php', 'Controllers/AssetController.php',
     'Controllers/CollectorController.php',
+    'Controllers/AddressController.php', 'Services/AddressService.php',
     'Controllers/InstallController.php', 'Services/InstallService.php',
     'Middleware/EnsureEnabled.php', 'Models/ServerSetting.php',
     'Models/MachineSetting.php', 'Models/CollectorCursor.php', 'Models/MachineDaily.php',
@@ -57,6 +58,7 @@ $required = [
     'database/migrations/2026_10_07_000002_create_flowscope_machine_tables.php',
     'database/migrations/2026_10_07_000003_create_flowscope_install_tickets_table.php',
     'database/migrations/2026_10_07_000004_create_flowscope_machine_addresses_table.php',
+    'database/migrations/2026_10_09_000005_add_address_sources.php',
 ];
 foreach ($required as $file) {
     $bytes = $zip->getFromName('Flowscope/' . $file);
@@ -137,6 +139,10 @@ $classFile = (new ReflectionClass('Plugin\\Flowscope\\Plugin'))->getFileName();
 packageVerify(realpath($classFile) === realpath($fixture . '/plugins/Flowscope/Plugin.php'), 'Plugin class is loaded from uploaded archive, not repository source');
 packageVerify(is_file($fixture . '/public/plugins/flowscope/flowscope.js'), 'native install publishes archived plugin assets');
 packageVerify($manager->enable('flowscope'), 'uploaded archive enables through native manager');
+$addressPayload = ['machine_id' => 71, 'token' => str_repeat('d', 32), 'ipv4' => '8.8.4.4', 'age_seconds' => 0];
+packageVerify(flowScopeRequest('POST', '/api/v2/flowscope/node-address', $addressPayload, null)->getStatusCode() === 200, 'uploaded Node address works before collector or periodic settings');
+packageVerify(DB::table('flowscope_machine_daily')->count() === 0 && DB::table('flowscope_collector_cursors')->count() === 0, 'uploaded IPv4 creates no fake traffic');
+packageVerify(realpath((new ReflectionClass('Plugin\\Flowscope\\Services\\AddressService'))->getFileName()) === realpath($fixture . '/plugins/Flowscope/Services/AddressService.php'), 'unified address service runs from actual uploaded ZIP');
 packageVerify(flowScopeRequest('GET', '/api/v2/flowscope/dashboard')->getStatusCode() === 200, 'archived backend serves authorized API');
 packageVerify(flowScopeRequest('GET', '/api/v2/flowscope/dashboard', [], null)->getStatusCode() === 403, 'archived backend preserves native admin authorization');
 packageVerify(flowScopeRequest('GET', '/api/v2/flowscope/server/vless/71')->getStatusCode() === 410, 'archived legacy node API is explicitly retired');

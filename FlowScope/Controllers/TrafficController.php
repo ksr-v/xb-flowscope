@@ -13,6 +13,7 @@ use InvalidArgumentException;
 use Plugin\Flowscope\Models\CollectorCursor;
 use Plugin\Flowscope\Models\MachineSetting;
 use Plugin\Flowscope\Services\CollectorService;
+use Plugin\Flowscope\Services\AddressService;
 use Plugin\Flowscope\Services\MachineIdentityService;
 use Plugin\Flowscope\Services\QuotaService;
 use Plugin\Flowscope\Services\TrafficUsageService;
@@ -32,11 +33,9 @@ final class TrafficController extends Controller
         return response()->json(['data' => ['machines' => $machines]]);
     }
 
-    public function addresses(): JsonResponse
+    public function addresses(AddressService $addresses): JsonResponse
     {
-        $rows = DB::table('flowscope_machine_addresses')->join('v2_server_machine', 'v2_server_machine.id', '=', 'flowscope_machine_addresses.machine_id')
-            ->get(['machine_id', 'ipv4', 'flowscope_machine_addresses.updated_at']);
-        return response()->json(['data' => ['machines' => $rows]], 200, ['Cache-Control' => 'no-store, private']);
+        return response()->json(['data' => $addresses->listing()], 200, ['Cache-Control' => 'no-store, private']);
     }
 
     public function show(string $id): JsonResponse

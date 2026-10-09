@@ -61,6 +61,8 @@ $ticketMigrationPath = base_path('plugins/Flowscope/database/migrations/2026_10_
 File::move($ticketMigrationPath, $ticketMigrationPath . '.pending');
 $addressMigrationPath = base_path('plugins/Flowscope/database/migrations/2026_10_07_000004_create_flowscope_machine_addresses_table.php');
 File::move($addressMigrationPath, $addressMigrationPath . '.pending');
+$sourcesMigrationPath = base_path('plugins/Flowscope/database/migrations/2026_10_09_000005_add_address_sources.php');
+File::move($sourcesMigrationPath, $sourcesMigrationPath . '.pending');
 
 $app['router']->get('/native/order', static fn () => response()->json(['native' => true]));
 verify($manager->install('flowscope'), 'native PluginManager install');
@@ -74,6 +76,7 @@ DB::table('flowscope_server_settings')->insert([
 File::move($newMigrationPath . '.pending', $newMigrationPath);
 File::move($ticketMigrationPath . '.pending', $ticketMigrationPath);
 File::move($addressMigrationPath . '.pending', $addressMigrationPath);
+File::move($sourcesMigrationPath . '.pending', $sourcesMigrationPath);
 file_put_contents($fixtureConfigPath, $currentFixtureConfig);
 verify($manager->update('flowscope'), 'native update of actual 1.0.1 migration batch to machine release');
 verify(PluginRecord::where('code', 'flowscope')->value('version') === $releaseVersion, 'real upgrade records machine SemVer');

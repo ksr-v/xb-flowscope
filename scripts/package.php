@@ -41,6 +41,10 @@ if (is_file($root . '/docs/TEST_REPORT_1.0.1.md')) {
 if (is_file($root . '/docs/VM_TEST_REPORT.md')) {
     $zip->addFile($root . '/docs/VM_TEST_REPORT.md', 'Flowscope/docs/VM_TEST_REPORT.md');
 }
+$upgradeDocument = 'docs/UPGRADE_v' . $config['version'] . '.md';
+if (is_file($root . '/' . $upgradeDocument)) {
+    $zip->addFile($root . '/' . $upgradeDocument, 'Flowscope/' . $upgradeDocument);
+}
 $collectorDir = $root . '/collector';
 if (is_dir($collectorDir)) {
     $collectorFiles = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($collectorDir, FilesystemIterator::SKIP_DOTS));

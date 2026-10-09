@@ -31,7 +31,7 @@ class ReleaseTests(unittest.TestCase):
                     self.assertEqual(archive.read(name), source.read_bytes(), name)
             config = json.loads(archive.read("Flowscope/config.json"))
             self.assertEqual(config["version"], VERSION)
-            for document in ("README.md", "DEVELOPMENT.md", "IMPLEMENTATION_PLAN.md", "TEST_REPORT.md", "LICENSE", "docs/TEST_REPORT_1.0.1.md", "docs/VM_TEST_REPORT.md"):
+            for document in ("README.md", "DEVELOPMENT.md", "IMPLEMENTATION_PLAN.md", "TEST_REPORT.md", "LICENSE", "docs/TEST_REPORT_1.0.1.md", "docs/VM_TEST_REPORT.md", f"docs/UPGRADE_v{VERSION}.md"):
                 self.assertEqual(archive.read("Flowscope/" + document), (ROOT / document).read_bytes())
 
     def test_collector_tar_safe_and_complete(self):

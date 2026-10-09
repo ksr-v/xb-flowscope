@@ -1,15 +1,15 @@
 /* Only FlowScope-owned DOM and reversible markers are styled. Native theme variables
    retain Xboard's Shadcn light/dark palette and radius. */
-[data-flowscope-hidden="flowscope-2.3.0"] { display: none !important; }
-[data-flowscope-owner="flowscope-2.3.0"] { box-sizing: border-box; min-width: 0; color: hsl(var(--card-foreground)); font-size: .875rem; line-height: 1.5; }
-[data-flowscope-owner="flowscope-2.3.0"] *, [data-flowscope-owner="flowscope-2.3.0"] *::before, [data-flowscope-owner="flowscope-2.3.0"] *::after { box-sizing: border-box; }
+[data-flowscope-hidden="flowscope-2.4.0"] { display: none !important; }
+[data-flowscope-owner="flowscope-2.4.0"] { box-sizing: border-box; min-width: 0; color: hsl(var(--card-foreground)); font-size: .875rem; line-height: 1.5; }
+[data-flowscope-owner="flowscope-2.4.0"] *, [data-flowscope-owner="flowscope-2.4.0"] *::before, [data-flowscope-owner="flowscope-2.4.0"] *::after { box-sizing: border-box; }
 /* Only the audited machine editor receives this reversible adapter marker.
    Native name/notes/status/footer remain intact; the extra sibling can scroll. */
-[data-flowscope-machine-dialog="flowscope-2.3.0"] { display: block !important; overflow-y: auto !important; touch-action: pan-y !important; overscroll-behavior: contain; max-height: 90vh; max-height: 90dvh; }
+[data-flowscope-machine-dialog="flowscope-2.4.0"] { display: block !important; overflow-y: auto !important; touch-action: pan-y !important; overscroll-behavior: contain; max-height: 90vh; max-height: 90dvh; }
 /* Vaul's 200%-height drag filler otherwise paints over scrolled form siblings.
    Suppress it only while this exact machine dialog is adapted. */
-[data-flowscope-machine-dialog="flowscope-2.3.0"][data-vaul-drawer]::after { content: none !important; display: none !important; }
-[data-flowscope-machine-dialog="flowscope-2.3.0"] > .flowscope-editor { margin: 0 1.5rem 1.5rem; }
+[data-flowscope-machine-dialog="flowscope-2.4.0"][data-vaul-drawer]::after { content: none !important; display: none !important; }
+[data-flowscope-machine-dialog="flowscope-2.4.0"] > .flowscope-editor { margin: 0 1.5rem 1.5rem; }
 .flowscope-card { width: 100%; border: 1px solid hsl(var(--border)); border-radius: var(--radius, .75rem); background: hsl(var(--card)); box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
 .flowscope-card-header { padding: 1.5rem 1.5rem 1rem; }
 .flowscope-card-title { margin: 0; color: hsl(var(--foreground)); font-size: 1rem; font-weight: 600; line-height: 1.35; letter-spacing: -.025em; }

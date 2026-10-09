@@ -1,4 +1,12 @@
-# FlowScope 2.3.0 implementation plan
+# FlowScope 2.4.0 implementation plan
+
+## 2.4.0 minimal IPv4 extension (2026-10-09)
+
+Reuse existing machine address table, digest-independent collector metadata, native machine/node identities, Client and Admin address component. Add one AddressService, four nullable source fields, one authenticated Node endpoint and source-aware display. Keep Python/outbox/protocol/native core/foreign plugins intact. Node adds one standard-library detector/reporter file driven by existing Client success scheduling.
+
+The native node-mode credential is panel-wide and cannot prove per-node possession. Use expiring node-only compatibility observations and resolve current native DB associations for display. Machine mode alone writes machine address records. Do not claim cryptographic per-node isolation without scoped credentials.
+
+Test additive actual-2.3.0 upgrade, retained IPv4/counters/settings, source priority/fallback/age, native uploaded ZIP/lifecycle, original collector regression, real Admin traffic-off behavior, Go/PHP route integration, native Node tests and Linux amd64/arm64 builds. Actual execution belongs in TEST_REPORT; no remote publish/deploy.
 
 ## 2.3.0 short interactive management
 
